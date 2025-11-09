@@ -44,7 +44,7 @@ This project provides APIs for:
 - **Infra Zone** — NATS for events, Prometheus/Grafana for metrics, Loki/ELK for logs.
 
 ### Architecture Diagram
-![image description](assets/components.svg)
+![image description](docs/images/components.svg)
 
 
 ### 🧩 Microservice API Endpoints
