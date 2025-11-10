@@ -4,10 +4,9 @@ pub mod queries;
 pub mod services;
 
 pub use commands::{
-    CreateNetworkCommand, CreateNetworkHandler,
+    CreateNetworkCommand, CreateNetworkHandler, DeleteNetworkCommand, DeleteNetworkHandler,
     UpdateNetworkCommand, UpdateNetworkHandler,
-    DeleteNetworkCommand, DeleteNetworkHandler,
 };
-pub use dtos::{CreateNetworkRequest, UpdateNetworkRequest, NetworkResponse};
-pub use queries::{GetNetworkQuery, GetNetworkHandler, ListNetworksQuery, ListNetworksHandler};
+pub use dtos::{CreateNetworkRequest, NetworkResponse, UpdateNetworkRequest};
+pub use queries::{GetNetworkHandler, GetNetworkQuery, ListNetworksHandler, ListNetworksQuery};
 pub use services::NetworkApplicationService;

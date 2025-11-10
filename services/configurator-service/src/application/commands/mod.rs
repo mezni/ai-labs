@@ -1,7 +1,6 @@
 pub mod network_commands;
 
 pub use network_commands::{
-    CreateNetworkCommand, CreateNetworkHandler,
+    CreateNetworkCommand, CreateNetworkHandler, DeleteNetworkCommand, DeleteNetworkHandler,
     UpdateNetworkCommand, UpdateNetworkHandler,
-    DeleteNetworkCommand, DeleteNetworkHandler,
 };

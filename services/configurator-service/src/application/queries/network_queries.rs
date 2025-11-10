@@ -1,4 +1,4 @@
-use crate::domain::{Network, NetworkRepository, DomainError};
+use crate::domain::{DomainError, Network, NetworkRepository};
 
 // ======================== GET NETWORK ========================
 pub struct GetNetworkQuery {

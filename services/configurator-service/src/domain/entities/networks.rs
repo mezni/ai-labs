@@ -55,7 +55,10 @@ impl Network {
             return Err(DomainError::EmptyName);
         }
         if name.len() > constants::MAX_NAME_LENGTH {
-            return Err(DomainError::NameTooLong(name.len(), constants::MAX_NAME_LENGTH));
+            return Err(DomainError::NameTooLong(
+                name.len(),
+                constants::MAX_NAME_LENGTH,
+            ));
         }
 
         let audit_info = AuditInfo::new(created_by)?;
@@ -81,7 +84,10 @@ impl Network {
                 return Err(DomainError::EmptyName);
             }
             if new_name.len() > constants::MAX_NAME_LENGTH {
-                return Err(DomainError::NameTooLong(new_name.len(), constants::MAX_NAME_LENGTH));
+                return Err(DomainError::NameTooLong(
+                    new_name.len(),
+                    constants::MAX_NAME_LENGTH,
+                ));
             }
             self.name = new_name.trim().to_string();
         }
@@ -126,19 +132,46 @@ pub struct NetworkBuilder {
 
 impl NetworkBuilder {
     pub fn new() -> Self {
-        Self { name: None, network_type: None, email: None, phone: None, address: None, created_by: None }
+        Self {
+            name: None,
+            network_type: None,
+            email: None,
+            phone: None,
+            address: None,
+            created_by: None,
+        }
     }
 
-    pub fn name(mut self, name: String) -> Self { self.name = Some(name); self }
-    pub fn network_type(mut self, network_type: NetworkType) -> Self { self.network_type = Some(network_type); self }
-    pub fn email(mut self, email: String) -> Self { self.email = Some(email); self }
-    pub fn phone(mut self, phone: String) -> Self { self.phone = Some(phone); self }
-    pub fn address(mut self, address: String) -> Self { self.address = Some(address); self }
-    pub fn created_by(mut self, created_by: String) -> Self { self.created_by = Some(created_by); self }
+    pub fn name(mut self, name: String) -> Self {
+        self.name = Some(name);
+        self
+    }
+    pub fn network_type(mut self, network_type: NetworkType) -> Self {
+        self.network_type = Some(network_type);
+        self
+    }
+    pub fn email(mut self, email: String) -> Self {
+        self.email = Some(email);
+        self
+    }
+    pub fn phone(mut self, phone: String) -> Self {
+        self.phone = Some(phone);
+        self
+    }
+    pub fn address(mut self, address: String) -> Self {
+        self.address = Some(address);
+        self
+    }
+    pub fn created_by(mut self, created_by: String) -> Self {
+        self.created_by = Some(created_by);
+        self
+    }
 
     pub fn build(self) -> Result<Network, DomainError> {
         let name = self.name.ok_or(DomainError::EmptyName)?;
-        let network_type = self.network_type.ok_or(DomainError::InvalidNetworkType("Not set".into()))?;
+        let network_type = self
+            .network_type
+            .ok_or(DomainError::InvalidNetworkType("Not set".into()))?;
         let created_by = self.created_by.ok_or(DomainError::EmptyCreatedBy)?;
         let contact_info = ContactInfo::new(self.email, self.phone, self.address)?;
         Network::new(name, network_type, contact_info, created_by)

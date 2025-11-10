@@ -1,12 +1,12 @@
-use actix_web::{web, HttpResponse, Responder};
-use utoipa::ToSchema;
-use utoipa::IntoParams;
+use actix_web::{HttpResponse, Responder, web};
 use serde::Deserialize;
+use utoipa::IntoParams;
+use utoipa::ToSchema;
 
 use crate::application::{
-    NetworkApplicationService, CreateNetworkRequest, UpdateNetworkRequest, NetworkResponse,
+    CreateNetworkRequest, NetworkApplicationService, NetworkResponse, UpdateNetworkRequest,
 };
-use shared::core::{AppError, ErrorResponse, ApiResponse};
+use shared::core::{ApiResponse, AppError, ErrorResponse};
 
 /// Create Network
 #[utoipa::path(
@@ -57,7 +57,9 @@ pub async fn update_network(
     match service.update_network(command).await {
         Ok(network) => HttpResponse::Ok().json(ApiResponse::success(network)),
         Err(e) => match e {
-            AppError::NotFound(_) => HttpResponse::NotFound().json(ApiResponse::<()>::error(&e.to_response())),
+            AppError::NotFound(_) => {
+                HttpResponse::NotFound().json(ApiResponse::<()>::error(&e.to_response()))
+            }
             _ => HttpResponse::BadRequest().json(ApiResponse::<()>::error(&e.to_response())),
         },
     }
@@ -88,7 +90,9 @@ pub async fn delete_network(
     match service.delete_network(command).await {
         Ok(_) => HttpResponse::NoContent().finish(),
         Err(e) => match e {
-            AppError::NotFound(_) => HttpResponse::NotFound().json(ApiResponse::<()>::error(&e.to_response())),
+            AppError::NotFound(_) => {
+                HttpResponse::NotFound().json(ApiResponse::<()>::error(&e.to_response()))
+            }
             _ => HttpResponse::BadRequest().json(ApiResponse::<()>::error(&e.to_response())),
         },
     }
@@ -111,12 +115,16 @@ pub async fn get_network(
     service: web::Data<NetworkApplicationService>,
     path: web::Path<i32>,
 ) -> impl Responder {
-    let query = crate::application::queries::GetNetworkQuery { id: path.into_inner() };
+    let query = crate::application::queries::GetNetworkQuery {
+        id: path.into_inner(),
+    };
 
     match service.get_network(query).await {
         Ok(network) => HttpResponse::Ok().json(ApiResponse::success(network)),
         Err(e) => match e {
-            AppError::NotFound(_) => HttpResponse::NotFound().json(ApiResponse::<()>::error(&e.to_response())),
+            AppError::NotFound(_) => {
+                HttpResponse::NotFound().json(ApiResponse::<()>::error(&e.to_response()))
+            }
             _ => HttpResponse::BadRequest().json(ApiResponse::<()>::error(&e.to_response())),
         },
     }

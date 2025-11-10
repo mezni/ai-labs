@@ -1,10 +1,13 @@
-use actix_web::web;
-use crate::application::NetworkApplicationService;
 use crate::api::handlers::network_handlers::{
-    create_network, update_network, delete_network, get_network, list_networks,
+    create_network, delete_network, get_network, list_networks, update_network,
 };
+use crate::application::NetworkApplicationService;
+use actix_web::web;
 
-pub fn configure_routes(cfg: &mut web::ServiceConfig, service: web::Data<NetworkApplicationService>) {
+pub fn configure_routes(
+    cfg: &mut web::ServiceConfig,
+    service: web::Data<NetworkApplicationService>,
+) {
     cfg.service(
         web::scope("/api/v1/networks")
             .app_data(service.clone())

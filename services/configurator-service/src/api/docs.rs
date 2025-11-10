@@ -1,9 +1,10 @@
 use utoipa::OpenApi;
-use utoipa_swagger_ui::SwaggerUi;
+
 use crate::api::handlers::network_handlers::{
-    create_network, update_network, delete_network, get_network, list_networks,
-    CreateNetworkRequest, UpdateNetworkRequest, NetworkResponse, ListNetworksQuery,
+    CreateNetworkRequest, ListNetworksQuery, NetworkResponse, UpdateNetworkRequest, create_network,
+    delete_network, get_network, list_networks, update_network,
 };
+use utoipa_swagger_ui::SwaggerUi;
 
 /// Define the OpenAPI documentation
 #[derive(OpenApi)]
@@ -32,7 +33,6 @@ pub struct ApiDoc;
 /// Configure Swagger UI route for Actix Web
 pub fn configure_docs(cfg: &mut actix_web::web::ServiceConfig) {
     cfg.service(
-        SwaggerUi::new("/swagger-ui/{_:.*}")
-            .url("/api-doc/openapi.json", ApiDoc::openapi()),
+        SwaggerUi::new("/swagger-ui/{_:.*}").url("/api-doc/openapi.json", ApiDoc::openapi()),
     );
 }

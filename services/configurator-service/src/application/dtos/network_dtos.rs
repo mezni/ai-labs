@@ -1,4 +1,4 @@
-use crate::domain::{Network};
+use crate::domain::Network;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 

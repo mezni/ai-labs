@@ -1,4 +1,6 @@
-use crate::domain::events::networks::{NetworkCreatedEvent, NetworkUpdatedEvent, NetworkDeletedEvent};
+use crate::domain::events::networks::{
+    NetworkCreatedEvent, NetworkDeletedEvent, NetworkUpdatedEvent,
+};
 
 #[derive(Clone)]
 pub struct EventPublisher;

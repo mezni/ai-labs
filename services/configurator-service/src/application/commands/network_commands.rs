@@ -1,5 +1,5 @@
-use crate::domain::{Network, NetworkRepository, DomainError, NetworkType, ContactInfo};
 use crate::application::dtos::{CreateNetworkRequest, UpdateNetworkRequest};
+use crate::domain::{ContactInfo, DomainError, Network, NetworkRepository, NetworkType};
 
 // ======================== CREATE NETWORK ========================
 pub struct CreateNetworkCommand {

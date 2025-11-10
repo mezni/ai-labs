@@ -7,11 +7,15 @@ use validator::Validate;
 pub struct NetworkId(pub i32);
 
 impl From<i32> for NetworkId {
-    fn from(value: i32) -> Self { NetworkId(value) }
+    fn from(value: i32) -> Self {
+        NetworkId(value)
+    }
 }
 
 impl From<NetworkId> for i32 {
-    fn from(value: NetworkId) -> Self { value.0 }
+    fn from(value: NetworkId) -> Self {
+        value.0
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Validate)]
@@ -30,15 +34,27 @@ pub struct ContactInfo {
 }
 
 impl ContactInfo {
-    pub fn new(email: Option<String>, phone: Option<String>, address: Option<String>) -> Result<Self, DomainError> {
-        let contact = Self { email, phone, address };
+    pub fn new(
+        email: Option<String>,
+        phone: Option<String>,
+        address: Option<String>,
+    ) -> Result<Self, DomainError> {
+        let contact = Self {
+            email,
+            phone,
+            address,
+        };
 
         if let Some(phone) = &contact.phone {
-            if phone.len() > 50 { return Err(DomainError::PhoneTooLong(phone.len(), 50)); }
+            if phone.len() > 50 {
+                return Err(DomainError::PhoneTooLong(phone.len(), 50));
+            }
         }
 
         if let Some(address) = &contact.address {
-            if address.len() > 1000 { return Err(DomainError::PhoneTooLong(address.len(), 1000)); }
+            if address.len() > 1000 {
+                return Err(DomainError::PhoneTooLong(address.len(), 1000));
+            }
         }
 
         Ok(contact)
@@ -55,9 +71,16 @@ pub struct AuditInfo {
 
 impl AuditInfo {
     pub fn new(created_by: String) -> Result<Self, DomainError> {
-        if created_by.trim().is_empty() { return Err(DomainError::EmptyCreatedBy); }
+        if created_by.trim().is_empty() {
+            return Err(DomainError::EmptyCreatedBy);
+        }
         let now = chrono::Utc::now();
-        Ok(Self { created_by, updated_by: None, created_at: now, updated_at: now })
+        Ok(Self {
+            created_by,
+            updated_by: None,
+            created_at: now,
+            updated_at: now,
+        })
     }
 
     pub fn update_audit(&mut self, updated_by: String) {

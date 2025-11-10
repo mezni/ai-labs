@@ -9,7 +9,7 @@ use shared::config::AppConfig;
 use std::sync::Arc;
 
 // Re-export main components for easy access
-pub use api::{configure_routes, configure_docs};
+pub use api::{configure_docs, configure_routes};
 pub use application::services::NetworkApplicationService;
 pub use infrastructure::{Database, EventPublisher, PostgresNetworkRepository};
 
@@ -27,14 +27,15 @@ impl ConfiguratorApp {
         }
 
         // Initialize infrastructure (database & repositories)
-        let database = tokio::runtime::Handle::current()
-            .block_on(async { Database::new(&config).await })?;
+        let database =
+            tokio::runtime::Handle::current().block_on(async { Database::new(&config).await })?;
 
         let network_repository = PostgresNetworkRepository::new(database.get_pool().clone());
         let event_publisher = EventPublisher::new();
 
         // Initialize application service
-        let app_service = NetworkApplicationService::new(Box::new(network_repository), event_publisher);
+        let app_service =
+            NetworkApplicationService::new(Box::new(network_repository), event_publisher);
 
         Ok(Self {
             config: Arc::new(config),
@@ -50,7 +51,10 @@ impl ConfiguratorApp {
         let server_address = self.get_server_address();
         let app_service_data = web::Data::new(self.app_service.clone());
 
-        println!("🚀 Starting {} on {}", self.config.service_name, server_address);
+        println!(
+            "🚀 Starting {} on {}",
+            self.config.service_name, server_address
+        );
 
         HttpServer::new(move || {
             let cors_origins = self.config.server.cors_origins.clone();
