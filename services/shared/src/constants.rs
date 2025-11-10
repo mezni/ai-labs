@@ -41,3 +41,8 @@ pub const ENVIRONMENT_ENV: &str = "ENVIRONMENT";
 // JWT constants
 pub const JWT_SECRET_ENV: &str = "JWT_SECRET";
 pub const JWT_EXPIRATION_HOURS: i64 = 24;
+
+// Header constants
+pub const REQUEST_ID_HEADER: &str = "x-request-id";
+pub const USER_ID_HEADER: &str = "x-user-id";  // Add this
+pub const CORRELATION_ID_HEADER: &str = "x-correlation-id";

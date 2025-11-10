@@ -7,20 +7,39 @@ description = "configurator-service"
 license = "MIT"
 
 [dependencies]
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.145"
-chrono = { version = "0.4.42", features = ["serde"] }
-uuid = { version = "1.18.1", features = ["serde", "v4"] }
-jsonwebtoken = {version = "10.2.0", features = ["rust_crypto"]}
-log = "0.4.28"
-env_logger = "0.11.8"
-actix-web = "4.11.0"
-thiserror = "2.0.17"
+# --- Core Serialization ---
+serde = { version = "1.0.210", features = ["derive"] }
+serde_json = "1.0.132"
+
+# --- Time & IDs ---
+chrono = { version = "0.4.38", features = ["serde"] }
+uuid = { version = "1.10.0", features = ["serde", "v4"] }
+
+# --- JWT ---
+jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"] }
+
+# --- Logging / Tracing ---
+log = "0.4.22"
+env_logger = "0.11.5"
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter", "fmt"] }
+
+# --- Error Handling ---
+thiserror = "2.0.3"
 derive_more = "2.0.1"
+
+# --- Async / Traits ---
+async-trait = "0.1.83"
+
+# --- Validation ---
+validator = { version = "0.18.1", features = ["derive"] }
+
+# --- Config / Environment ---
 dotenvy = "0.15.7"
-async-trait = "0.1.89"
+
+# --- Web Framework (for shared types like ApiResponse) ---
+actix-web = { version = "4.8.0", default-features = false, features = ["macros"] }
+
+# --- OpenAPI / Swagger ---
 utoipa = { version = "5.4.0", features = ["macros"] }
 utoipa-swagger-ui = "9.0.2"
-tracing = "0.1.41"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] } 
-validator = { version = "0.20.0", features = ["derive"] }

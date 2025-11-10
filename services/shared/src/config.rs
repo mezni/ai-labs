@@ -1,8 +1,7 @@
 use crate::constants;
 use dotenvy::dotenv;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::env;
+use std::{collections::HashMap, env};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct DatabaseConfig {
@@ -44,8 +43,8 @@ pub struct AppConfig {
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
-            environment: constants::ENV_DEVELOPMENT.to_string(),
-            service_name: constants::SERVICE_NAME.to_string(),
+            environment: constants::ENV_DEVELOPMENT.into(),
+            service_name: constants::SERVICE_NAME.into(),
             database: DatabaseConfig {
                 url: String::new(),
                 max_connections: constants::MAX_DB_CONNECTIONS,
@@ -53,12 +52,12 @@ impl Default for AppConfig {
             },
             server: ServerConfig {
                 port: constants::DEFAULT_HTTP_PORT,
-                host: "0.0.0.0".to_string(),
-                cors_origins: vec!["*".to_string()],
+                host: "0.0.0.0".into(),
+                cors_origins: vec!["*".into()],
             },
             logging: LoggingConfig {
-                level: constants::DEFAULT_LOG_LEVEL.to_string(),
-                format: "text".to_string(),
+                level: constants::DEFAULT_LOG_LEVEL.into(),
+                format: "text".into(),
             },
             auth: AuthConfig {
                 jwt_secret: String::new(),
@@ -72,51 +71,36 @@ impl Default for AppConfig {
 impl AppConfig {
     pub fn from_env() -> Result<Self, ConfigError> {
         dotenv().ok();
-
         let environment = env::var(constants::ENVIRONMENT_ENV)
-            .unwrap_or_else(|_| constants::ENV_DEVELOPMENT.to_string());
+            .unwrap_or_else(|_| constants::ENV_DEVELOPMENT.into());
 
         let features = Self::parse_feature_flags();
 
         Ok(Self {
             environment,
-            service_name: env::var("SERVICE_NAME")
-                .map_err(|_| ConfigError::MissingVariable("SERVICE_NAME".to_string()))?,
+            service_name: get_env("SERVICE_NAME")?,
             database: DatabaseConfig {
                 url: env::var(constants::DATABASE_URL_ENV).unwrap_or_default(),
-                max_connections: env::var("DATABASE_MAX_CONNECTIONS")
-                    .unwrap_or_else(|_| constants::MAX_DB_CONNECTIONS.to_string())
-                    .parse()
-                    .unwrap_or(constants::MAX_DB_CONNECTIONS),
-                timeout_seconds: env::var("DATABASE_TIMEOUT_SECONDS")
-                    .unwrap_or_else(|_| constants::DB_TIMEOUT_SECONDS.to_string())
-                    .parse()
-                    .unwrap_or(constants::DB_TIMEOUT_SECONDS),
+                max_connections: get_env_parse("DATABASE_MAX_CONNECTIONS", constants::MAX_DB_CONNECTIONS),
+                timeout_seconds: get_env_parse("DATABASE_TIMEOUT_SECONDS", constants::DB_TIMEOUT_SECONDS),
             },
             server: ServerConfig {
-                port: env::var(constants::HTTP_PORT_ENV)
-                    .map_err(|_| ConfigError::MissingVariable("PORT".to_string()))?
-                    .parse()
-                    .map_err(|_| ConfigError::InvalidValue("PORT must be a number".to_string()))?,
-                host: env::var("HOST")
-                    .map_err(|_| ConfigError::MissingVariable("HOST".to_string()))?,
+                port: get_env_parse("PORT", constants::DEFAULT_HTTP_PORT),
+                host: get_env("HOST")?,
                 cors_origins: env::var(constants::CORS_ORIGINS_ENV)
-                    .unwrap_or_else(|_| "*".to_string())
+                    .unwrap_or_else(|_| "*".into())
                     .split(',')
                     .map(|s| s.trim().to_string())
                     .collect(),
             },
             logging: LoggingConfig {
                 level: env::var(constants::LOG_LEVEL_ENV)
-                    .unwrap_or_else(|_| constants::DEFAULT_LOG_LEVEL.to_string()),
-                format: env::var("LOG_FORMAT").unwrap_or_else(|_| "text".to_string()),
+                    .unwrap_or_else(|_| constants::DEFAULT_LOG_LEVEL.into()),
+                format: env::var("LOG_FORMAT").unwrap_or_else(|_| "text".into()),
             },
             auth: AuthConfig {
                 jwt_secret: env::var(constants::JWT_SECRET_ENV).unwrap_or_default(),
-                jwt_expiry_hours: env::var("JWT_EXPIRY_HOURS")
-                    .unwrap_or_else(|_| "24".to_string())
-                    .parse()
-                    .unwrap_or(24),
+                jwt_expiry_hours: get_env_parse("JWT_EXPIRY_HOURS", 24),
             },
             features,
         })
@@ -127,7 +111,7 @@ impl AppConfig {
             .unwrap_or_default()
             .split(',')
             .filter_map(|flag| {
-                let parts: Vec<&str> = flag.split('=').collect();
+                let parts: Vec<_> = flag.split('=').collect();
                 if parts.len() == 2 {
                     Some((parts[0].to_string(), parts[1] == "true" || parts[1] == "1"))
                 } else {
@@ -150,11 +134,22 @@ impl AppConfig {
     }
 }
 
+fn get_env(key: &str) -> Result<String, ConfigError> {
+    env::var(key).map_err(|_| ConfigError::MissingVariable(key.into()))
+}
+
+fn get_env_parse<T>(key: &str, default: T) -> T
+where
+    T: std::str::FromStr + Copy,
+{
+    env::var(key)
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(default)
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum ConfigError {
     #[error("Missing required environment variable: {0}")]
     MissingVariable(String),
-
-    #[error("Invalid configuration value: {0}")]
-    InvalidValue(String),
 }
