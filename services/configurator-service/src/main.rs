@@ -1,28 +1,32 @@
-use configurator_service::ConfiguratorApp;
-use std::env;
+use configurator_service::ServiceApp;
+use dotenvy::dotenv;
+use tracing::{error, info};
+
+const SERVICE_NAME: &str = "configurator-service";
 
 #[actix_web::main]
-async fn main() -> std::io::Result<()> {
-    // Set SERVICE_NAME safely
-    env::set_var("SERVICE_NAME", "configurator-service");
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    dotenv().ok();
 
-    // Initialize logger
-    shared::logger::init_logger();
+    // Initialize logger first
+    configurator_service::logger::init_logger()?;
 
-    // Create application
-    let app = ConfiguratorApp::new().unwrap_or_else(|e| {
-        eprintln!("Failed to create application: {}", e);
-        eprintln!("Required environment variables:");
-        eprintln!("  - DATABASE_URL");
-        eprintln!("  - HOST");
-        eprintln!("  - PORT");
-        eprintln!("Optional:");
-        eprintln!("  - JWT_SECRET");
-        eprintln!("  - CORS_ORIGINS");
-        eprintln!("  - LOG_LEVEL");
+    // Create app after logger is initialized
+    let app = match ServiceApp::new() {
+        Ok(app) => app,
+        Err(e) => {
+            error!("Failed to create application: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    info!("{} starting", SERVICE_NAME);
+    
+    if let Err(e) = app.run().await {
+        error!("Server error: {}", e);
         std::process::exit(1);
-    });
+    }
 
-    // Run server
-    app.run().await
+    info!("{} stopped gracefully", SERVICE_NAME);
+    Ok(())
 }
