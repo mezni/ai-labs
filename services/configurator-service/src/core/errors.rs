@@ -1,5 +1,5 @@
+use actix_web::{HttpResponse, ResponseError, http::StatusCode};
 use thiserror::Error;
-use actix_web::{ResponseError, HttpResponse, http::StatusCode};
 
 #[derive(Debug, Error)]
 pub enum ServiceError {
@@ -8,19 +8,19 @@ pub enum ServiceError {
         #[from]
         source: config::ConfigError,
     },
-    
+
     #[error("I/O error: {source}")]
     IoError {
         #[from]
         source: std::io::Error,
     },
-    
+
     #[error("Validation error: {details}")]
     ValidationError { details: String },
-    
+
     #[error("Resource not found: {resource}")]
     NotFound { resource: String },
-    
+
     #[error("Internal server error")]
     InternalError,
 }
@@ -38,7 +38,7 @@ impl ResponseError for ServiceError {
 
     fn error_response(&self) -> HttpResponse {
         let status = self.status_code();
-        
+
         // Create JSON error response
         let body = serde_json::json!({
             "error": self.to_string(),
@@ -52,10 +52,14 @@ impl ResponseError for ServiceError {
 // Convenient constructor functions
 impl ServiceError {
     pub fn validation<D: Into<String>>(details: D) -> Self {
-        Self::ValidationError { details: details.into() }
+        Self::ValidationError {
+            details: details.into(),
+        }
     }
-    
+
     pub fn not_found<R: Into<String>>(resource: R) -> Self {
-        Self::NotFound { resource: resource.into() }
+        Self::NotFound {
+            resource: resource.into(),
+        }
     }
 }

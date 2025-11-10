@@ -1,5 +1,5 @@
-use serde::Deserialize;
 use crate::core::errors::ServiceError;
+use serde::Deserialize;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct AppConfig {
@@ -10,14 +10,13 @@ pub struct AppConfig {
 
 impl AppConfig {
     pub fn new() -> Result<Self, ServiceError> {
-        let host = std::env::var("HOST")
-            .unwrap_or_else(|_| "127.0.0.1".to_string());
-        
+        let host = std::env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
+
         let port = std::env::var("PORT")
             .unwrap_or_else(|_| "8080".to_string())
             .parse()
             .map_err(|_| ServiceError::validation("PORT must be a valid number"))?;
-        
+
         let log_level = std::env::var("LOG_LEVEL").ok();
 
         Ok(AppConfig {

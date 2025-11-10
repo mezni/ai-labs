@@ -1,10 +1,10 @@
 pub mod core;
 
 // Re-export core modules at the crate level for easy access
-pub use core::{config, errors, logger};
-pub use core::{AppConfig, ServiceError, init_logger}; // Remove LoggerConfig
+pub use core::{AppConfig, ServiceError, init_logger};
+pub use core::{config, errors, logger}; // Remove LoggerConfig
 
-use actix_web::{web, App, HttpServer, Responder, middleware};
+use actix_web::{App, HttpServer, Responder, middleware, web};
 use tracing::{info, instrument};
 
 #[derive(Clone)]
@@ -32,7 +32,7 @@ impl ServiceApp {
     pub async fn run(&self) -> Result<(), ServiceError> {
         let addr = self.config.server_address();
         info!("Server starting on {}", addr);
-        
+
         HttpServer::new(|| {
             App::new()
                 .wrap(middleware::Logger::default())
@@ -44,7 +44,7 @@ impl ServiceApp {
         .shutdown_timeout(30)
         .run()
         .await?;
-        
+
         Ok(())
     }
 }

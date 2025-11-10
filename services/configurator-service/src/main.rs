@@ -21,7 +21,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     info!("{} starting", SERVICE_NAME);
-    
+
     if let Err(e) = app.run().await {
         error!("Server error: {}", e);
         std::process::exit(1);
