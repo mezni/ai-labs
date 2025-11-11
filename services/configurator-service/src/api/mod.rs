@@ -1,7 +1,6 @@
 pub mod handlers;
-//pub mod middleware;
-//pub mod openapi;
+pub mod openapi;
 pub mod routes;
 
-//pub use openapi::configure_openapi;
-use routes::configure_routes;
+// Re-export for easier access if needed
+pub use openapi::ApiDoc;

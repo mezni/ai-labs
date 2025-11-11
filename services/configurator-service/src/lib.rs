@@ -2,11 +2,11 @@ pub mod api;
 pub mod core;
 
 use actix_web::{App, HttpServer, web};
-use api::handlers::health_handlers::HealthApiDoc;
+use api::openapi::ApiDoc;
 use core::{AppConfig, Database, logger};
 use std::io;
 use utoipa::OpenApi;
-use utoipa_swagger_ui::SwaggerUi;
+use utoipa_swagger_ui::SwaggerUi; // Add this import
 
 /// Builds and configures the Actix Web application
 pub fn build_app(
@@ -25,8 +25,7 @@ pub fn build_app(
         .configure(api::routes::configure_routes)
         // Swagger UI available at /swagger-ui
         .service(
-            SwaggerUi::new("/swagger-ui/{_:.*}")
-                .url("/api-doc/openapi.json", HealthApiDoc::openapi()),
+            SwaggerUi::new("/swagger-ui/{_:.*}").url("/swagger-ui/openapi.json", ApiDoc::openapi()), // This should work now
         )
 }
 
