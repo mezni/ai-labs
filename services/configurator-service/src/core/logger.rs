@@ -1,19 +1,27 @@
-use tracing_subscriber::filter::EnvFilter;
-use tracing_subscriber::fmt;
-use tracing_subscriber::prelude::*;
+use dotenvy::dotenv;
+use std::env;
+use tracing_subscriber::{EnvFilter, fmt};
 
-pub fn init_logger() -> Result<(), Box<dyn std::error::Error>> {
-    let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+/// Initializes a tracing-based logger.
+/// Automatically reads LOG_LEVEL from .env or defaults to "info".
+pub fn init_logger() {
+    dotenv().ok();
 
-    tracing_subscriber::registry()
-        .with(env_filter)
-        .with(fmt::layer())
+    let log_level = env::var("LOG_LEVEL").unwrap_or_else(|_| "info".to_string());
+
+    // Configure tracing subscriber
+    let env_filter = EnvFilter::try_from_default_env()
+        .or_else(|_| EnvFilter::try_new(&log_level))
+        .unwrap_or_else(|_| EnvFilter::new("info"));
+
+    fmt()
+        .with_env_filter(env_filter)
+        .with_target(false) // hide target module names
+        .with_level(true)
+        .with_thread_ids(false)
+        .with_line_number(true)
+        .compact() // shorter format
         .init();
 
-    Ok(())
-}
-
-// Simple one-liner initialization
-pub fn init_logger_simple() {
-    tracing_subscriber::fmt::init();
+    tracing::info!("🪵 Logger initialized with level: {}", log_level);
 }

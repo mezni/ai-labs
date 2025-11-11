@@ -1,50 +1,54 @@
+pub mod api;
 pub mod core;
 
-// Re-export core modules at the crate level for easy access
-pub use core::{AppConfig, ServiceError, init_logger};
-pub use core::{config, errors, logger}; // Remove LoggerConfig
+use actix_web::{App, HttpServer, web};
+use api::handlers::health_handlers::HealthApiDoc;
+use core::{AppConfig, Database, logger};
+use std::io;
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
-use actix_web::{App, HttpServer, Responder, middleware, web};
-use tracing::{info, instrument};
-
-#[derive(Clone)]
-pub struct ServiceApp {
-    config: AppConfig,
+/// Builds and configures the Actix Web application
+pub fn build_app(
+    db: Database,
+) -> App<
+    impl actix_web::dev::ServiceFactory<
+        actix_web::dev::ServiceRequest,
+        Config = (),
+        Response = actix_web::dev::ServiceResponse,
+        Error = actix_web::Error,
+        InitError = (),
+    >,
+> {
+    App::new()
+        .app_data(web::Data::new(db))
+        .configure(api::routes::configure_routes)
+        // Swagger UI available at /swagger-ui
+        .service(
+            SwaggerUi::new("/swagger-ui/{_:.*}")
+                .url("/api-doc/openapi.json", HealthApiDoc::openapi()),
+        )
 }
 
-impl ServiceApp {
-    pub fn new() -> Result<Self, ServiceError> {
-        let config = AppConfig::new()?;
-        Ok(ServiceApp { config })
-    }
+/// Starts the HTTP server using .env configuration
+pub async fn start_server() -> io::Result<()> {
+    dotenvy::dotenv().ok();
 
-    #[instrument]
-    async fn index() -> impl Responder {
-        info!("Index route called");
-        "Hello, World!"
-    }
+    // Load configuration and initialize logger
+    let config = AppConfig::new().expect("Failed to load configuration");
+    logger::init_logger();
 
-    #[instrument]
-    async fn health() -> impl Responder {
-        "OK"
-    }
+    // Initialize database
+    let db = Database::new(&config)
+        .await
+        .expect("Failed to connect to database");
 
-    pub async fn run(&self) -> Result<(), ServiceError> {
-        let addr = self.config.server_address();
-        info!("Server starting on {}", addr);
+    let address = config.server_address();
 
-        HttpServer::new(|| {
-            App::new()
-                .wrap(middleware::Logger::default())
-                .wrap(middleware::Compress::default())
-                .route("/", web::get().to(Self::index))
-                .route("/health", web::get().to(Self::health))
-        })
-        .bind(&addr)?
-        .shutdown_timeout(30)
+    tracing::info!("🚀 Starting server at http://{}", address);
+
+    HttpServer::new(move || build_app(db.clone()))
+        .bind(address)?
         .run()
-        .await?;
-
-        Ok(())
-    }
+        .await
 }
