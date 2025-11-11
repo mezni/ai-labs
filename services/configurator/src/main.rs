@@ -1,15 +1,15 @@
-use actix_web::{web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{App, HttpResponse, HttpServer, Responder, web};
 use chrono::NaiveDateTime;
 use dotenvy::dotenv;
 use serde::{Deserialize, Serialize};
-use sqlx::{postgres::PgPoolOptions, PgPool};
+use sqlx::{PgPool, postgres::PgPoolOptions};
 use std::sync::Arc;
 use std::time::Duration;
-use tracing::{info, error, warn};
+use thiserror::Error;
+use tracing::{error, info, warn};
 use tracing_subscriber::EnvFilter;
 use utoipa::{OpenApi, ToSchema};
 use utoipa_swagger_ui::SwaggerUi;
-use thiserror::Error;
 
 // === CONSTANTS ===
 const API_PREFIX: &str = "/api/v1";
@@ -20,25 +20,25 @@ const DEFAULT_MAX_CONNECTIONS: u32 = 10;
 pub enum NetworkError {
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
-    
+
     #[error("Connection pool error: {0}")]
     PoolError(String),
-    
+
     #[error("Network not found")]
     NotFound,
-    
+
     #[error("Failed to create network: {0}")]
     CreateFailed(String),
-    
+
     #[error("Failed to update network: {0}")]
     UpdateFailed(String),
-    
+
     #[error("Failed to delete network: {0}")]
     DeleteFailed(String),
-    
+
     #[error("Validation error: {0}")]
     Validation(String),
-    
+
     #[error("Service unavailable: {0}")]
     ServiceUnavailable(String),
 }
@@ -47,11 +47,19 @@ impl actix_web::ResponseError for NetworkError {
     fn error_response(&self) -> HttpResponse {
         match self {
             NetworkError::NotFound => HttpResponse::NotFound().json(self.to_string()),
-            NetworkError::CreateFailed(_) => HttpResponse::InternalServerError().json(self.to_string()),
-            NetworkError::UpdateFailed(_) => HttpResponse::InternalServerError().json(self.to_string()),
-            NetworkError::DeleteFailed(_) => HttpResponse::InternalServerError().json(self.to_string()),
+            NetworkError::CreateFailed(_) => {
+                HttpResponse::InternalServerError().json(self.to_string())
+            }
+            NetworkError::UpdateFailed(_) => {
+                HttpResponse::InternalServerError().json(self.to_string())
+            }
+            NetworkError::DeleteFailed(_) => {
+                HttpResponse::InternalServerError().json(self.to_string())
+            }
             NetworkError::Validation(_) => HttpResponse::BadRequest().json(self.to_string()),
-            NetworkError::ServiceUnavailable(_) => HttpResponse::ServiceUnavailable().json(self.to_string()),
+            NetworkError::ServiceUnavailable(_) => {
+                HttpResponse::ServiceUnavailable().json(self.to_string())
+            }
             NetworkError::Database(e) => {
                 error!("Database error: {}", e);
                 HttpResponse::InternalServerError().json("Database error occurred")
@@ -75,8 +83,14 @@ impl ConnectionManager {
         Self::with_config(database_url, DEFAULT_MAX_CONNECTIONS).await
     }
 
-    pub async fn with_config(database_url: &str, max_connections: u32) -> Result<Self, NetworkError> {
-        info!("Initializing connection pool with {} max connections", max_connections);
+    pub async fn with_config(
+        database_url: &str,
+        max_connections: u32,
+    ) -> Result<Self, NetworkError> {
+        info!(
+            "Initializing connection pool with {} max connections",
+            max_connections
+        );
 
         let pool = PgPoolOptions::new()
             .max_connections(max_connections)
@@ -89,13 +103,10 @@ impl ConnectionManager {
             })?;
 
         // Test the connection
-        sqlx::query("SELECT 1")
-            .execute(&pool)
-            .await
-            .map_err(|e| {
-                error!("Failed to test database connection: {}", e);
-                NetworkError::PoolError(e.to_string())
-            })?;
+        sqlx::query("SELECT 1").execute(&pool).await.map_err(|e| {
+            error!("Failed to test database connection: {}", e);
+            NetworkError::PoolError(e.to_string())
+        })?;
 
         info!("Connection pool initialized successfully");
 
@@ -195,7 +206,7 @@ pub struct NetworkService {
 impl NetworkService {
     pub async fn new(database_url: &str) -> Result<Self, NetworkError> {
         let connection_manager = ConnectionManager::new(database_url).await?;
-        
+
         // Test the connection and verify the table exists
         sqlx::query("SELECT 1 FROM networks LIMIT 1")
             .execute(connection_manager.get_pool())
@@ -204,15 +215,19 @@ impl NetworkService {
                 error!("Failed to verify networks table: {}", e);
                 NetworkError::Database(e)
             })?;
-            
-        Ok(Self { 
-            connection_manager: Arc::new(connection_manager) 
+
+        Ok(Self {
+            connection_manager: Arc::new(connection_manager),
         })
     }
 
-    pub async fn new_with_config(database_url: &str, max_connections: u32) -> Result<Self, NetworkError> {
-        let connection_manager = ConnectionManager::with_config(database_url, max_connections).await?;
-        
+    pub async fn new_with_config(
+        database_url: &str,
+        max_connections: u32,
+    ) -> Result<Self, NetworkError> {
+        let connection_manager =
+            ConnectionManager::with_config(database_url, max_connections).await?;
+
         // Test the connection and verify the table exists
         sqlx::query("SELECT 1 FROM networks LIMIT 1")
             .execute(connection_manager.get_pool())
@@ -221,9 +236,9 @@ impl NetworkService {
                 error!("Failed to verify networks table: {}", e);
                 NetworkError::Database(e)
             })?;
-            
-        Ok(Self { 
-            connection_manager: Arc::new(connection_manager) 
+
+        Ok(Self {
+            connection_manager: Arc::new(connection_manager),
         })
     }
 
@@ -250,16 +265,14 @@ impl NetworkService {
         // Validate network type
         if network.type_ != "individual" && network.type_ != "company" {
             return Err(NetworkError::Validation(
-                "Network type must be either 'individual' or 'company'".to_string()
+                "Network type must be either 'individual' or 'company'".to_string(),
             ));
         }
 
         // Validate email if provided
         if let Some(ref email) = network.contact_email {
             if !is_valid_email(email) {
-                return Err(NetworkError::Validation(
-                    "Invalid email format".to_string()
-                ));
+                return Err(NetworkError::Validation("Invalid email format".to_string()));
             }
         }
 
@@ -288,20 +301,22 @@ impl NetworkService {
         }
     }
 
-    pub async fn update(&self, network_id: i32, network: NetworkUpdate) -> Result<Network, NetworkError> {
+    pub async fn update(
+        &self,
+        network_id: i32,
+        network: NetworkUpdate,
+    ) -> Result<Network, NetworkError> {
         // Validate network type
         if network.type_ != "individual" && network.type_ != "company" {
             return Err(NetworkError::Validation(
-                "Network type must be either 'individual' or 'company'".to_string()
+                "Network type must be either 'individual' or 'company'".to_string(),
             ));
         }
 
         // Validate email if provided
         if let Some(ref email) = network.contact_email {
             if !is_valid_email(email) {
-                return Err(NetworkError::Validation(
-                    "Invalid email format".to_string()
-                ));
+                return Err(NetworkError::Validation("Invalid email format".to_string()));
             }
         }
 
@@ -366,33 +381,33 @@ fn is_valid_email(email: &str) -> bool {
     if parts.len() != 2 {
         return false;
     }
-    
+
     let local_part = parts[0];
     let domain_part = parts[1];
-    
+
     // Check local part is not empty
     if local_part.is_empty() {
         return false;
     }
-    
+
     // Check domain part has at least one dot and valid structure
     let domain_parts: Vec<&str> = domain_part.split('.').collect();
     if domain_parts.len() < 2 {
         return false;
     }
-    
+
     // Check each domain part is not empty
     for part in domain_parts {
         if part.is_empty() {
             return false;
         }
     }
-    
+
     // Basic character check (you can make this more sophisticated)
     if email.contains(' ') || email.contains("..") {
         return false;
     }
-    
+
     true
 }
 
@@ -445,7 +460,9 @@ async fn pool_stats(service: web::Data<NetworkService>) -> HttpResponse {
     ),
     tag = "Network"
 )]
-async fn get_all_networks(service: web::Data<NetworkService>) -> Result<HttpResponse, NetworkError> {
+async fn get_all_networks(
+    service: web::Data<NetworkService>,
+) -> Result<HttpResponse, NetworkError> {
     let networks = service.get_all().await?;
     Ok(HttpResponse::Ok().json(networks))
 }
@@ -495,7 +512,7 @@ async fn create_network(
             return Err(NetworkError::Validation("Invalid email format".to_string()));
         }
     }
-    
+
     let network = service.create(network.into_inner()).await?;
     Ok(HttpResponse::Created().json(network))
 }
@@ -526,8 +543,10 @@ async fn update_network(
             return Err(NetworkError::Validation("Invalid email format".to_string()));
         }
     }
-    
-    let network = service.update(network_id.into_inner(), network.into_inner()).await?;
+
+    let network = service
+        .update(network_id.into_inner(), network.into_inner())
+        .await?;
     Ok(HttpResponse::Ok().json(network))
 }
 
@@ -628,7 +647,8 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(service.clone()))
             .configure(config)
             .service(
-                SwaggerUi::new("/swagger-ui/{_:.*}").url("/api-doc/openapi.json", ApiDoc::openapi()),
+                SwaggerUi::new("/swagger-ui/{_:.*}")
+                    .url("/api-doc/openapi.json", ApiDoc::openapi()),
             )
     })
     .bind((server_host, server_port))?
