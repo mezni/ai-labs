@@ -4,7 +4,8 @@ use dotenvy::dotenv;
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use std::sync::Arc;
-use tracing::{info, error};
+use std::time::Duration;
+use tracing::{info, error, warn};
 use tracing_subscriber::EnvFilter;
 use utoipa::{OpenApi, ToSchema};
 use utoipa_swagger_ui::SwaggerUi;
@@ -12,12 +13,16 @@ use thiserror::Error;
 
 // === CONSTANTS ===
 const API_PREFIX: &str = "/api/v1";
+const DEFAULT_MAX_CONNECTIONS: u32 = 10;
 
 // === ERROR TYPES ===
 #[derive(Error, Debug)]
 pub enum NetworkError {
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
+    
+    #[error("Connection pool error: {0}")]
+    PoolError(String),
     
     #[error("Network not found")]
     NotFound,
@@ -33,6 +38,9 @@ pub enum NetworkError {
     
     #[error("Validation error: {0}")]
     Validation(String),
+    
+    #[error("Service unavailable: {0}")]
+    ServiceUnavailable(String),
 }
 
 impl actix_web::ResponseError for NetworkError {
@@ -43,12 +51,94 @@ impl actix_web::ResponseError for NetworkError {
             NetworkError::UpdateFailed(_) => HttpResponse::InternalServerError().json(self.to_string()),
             NetworkError::DeleteFailed(_) => HttpResponse::InternalServerError().json(self.to_string()),
             NetworkError::Validation(_) => HttpResponse::BadRequest().json(self.to_string()),
+            NetworkError::ServiceUnavailable(_) => HttpResponse::ServiceUnavailable().json(self.to_string()),
             NetworkError::Database(e) => {
                 error!("Database error: {}", e);
                 HttpResponse::InternalServerError().json("Database error occurred")
             }
+            NetworkError::PoolError(e) => {
+                error!("Connection pool error: {}", e);
+                HttpResponse::ServiceUnavailable().json("Service temporarily unavailable")
+            }
         }
     }
+}
+
+// === CONNECTION MANAGER ===
+#[derive(Clone)]
+pub struct ConnectionManager {
+    pool: Arc<PgPool>,
+}
+
+impl ConnectionManager {
+    pub async fn new(database_url: &str) -> Result<Self, NetworkError> {
+        Self::with_config(database_url, DEFAULT_MAX_CONNECTIONS).await
+    }
+
+    pub async fn with_config(database_url: &str, max_connections: u32) -> Result<Self, NetworkError> {
+        info!("Initializing connection pool with {} max connections", max_connections);
+
+        let pool = PgPoolOptions::new()
+            .max_connections(max_connections)
+            .acquire_timeout(Duration::from_secs(30))
+            .connect(database_url)
+            .await
+            .map_err(|e| {
+                error!("Failed to create connection pool: {}", e);
+                NetworkError::PoolError(e.to_string())
+            })?;
+
+        // Test the connection
+        sqlx::query("SELECT 1")
+            .execute(&pool)
+            .await
+            .map_err(|e| {
+                error!("Failed to test database connection: {}", e);
+                NetworkError::PoolError(e.to_string())
+            })?;
+
+        info!("Connection pool initialized successfully");
+
+        Ok(Self {
+            pool: Arc::new(pool),
+        })
+    }
+
+    pub fn get_pool(&self) -> &PgPool {
+        &self.pool
+    }
+
+    pub async fn health_check(&self) -> Result<(), NetworkError> {
+        sqlx::query("SELECT 1")
+            .execute(self.get_pool())
+            .await
+            .map_err(|e| {
+                error!("Health check failed: {}", e);
+                NetworkError::PoolError(e.to_string())
+            })?;
+        Ok(())
+    }
+
+    pub async fn get_connection_stats(&self) -> Result<PoolStats, NetworkError> {
+        let size = self.pool.size();
+        let num_idle = self.pool.num_idle();
+        let num_used = size as u32 - num_idle as u32;
+
+        Ok(PoolStats {
+            total_connections: size as u32,
+            idle_connections: num_idle as u32,
+            used_connections: num_used,
+            max_connections: self.pool.options().get_max_connections(),
+        })
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct PoolStats {
+    pub total_connections: u32,
+    pub idle_connections: u32,
+    pub used_connections: u32,
+    pub max_connections: u32,
 }
 
 // === DATA MODELS ===
@@ -99,32 +189,51 @@ pub struct NetworkUpdate {
 // === SERVICE ===
 #[derive(Clone)]
 pub struct NetworkService {
-    pool: Arc<PgPool>,
+    connection_manager: Arc<ConnectionManager>,
 }
 
 impl NetworkService {
     pub async fn new(database_url: &str) -> Result<Self, NetworkError> {
-        let pool = PgPoolOptions::new()
-            .max_connections(5)
-            .connect(database_url)
-            .await
-            .map_err(NetworkError::Database)?;
+        let connection_manager = ConnectionManager::new(database_url).await?;
         
         // Test the connection and verify the table exists
         sqlx::query("SELECT 1 FROM networks LIMIT 1")
-            .execute(&pool)
+            .execute(connection_manager.get_pool())
             .await
             .map_err(|e| {
                 error!("Failed to verify networks table: {}", e);
                 NetworkError::Database(e)
             })?;
             
-        Ok(Self { pool: Arc::new(pool) })
+        Ok(Self { 
+            connection_manager: Arc::new(connection_manager) 
+        })
+    }
+
+    pub async fn new_with_config(database_url: &str, max_connections: u32) -> Result<Self, NetworkError> {
+        let connection_manager = ConnectionManager::with_config(database_url, max_connections).await?;
+        
+        // Test the connection and verify the table exists
+        sqlx::query("SELECT 1 FROM networks LIMIT 1")
+            .execute(connection_manager.get_pool())
+            .await
+            .map_err(|e| {
+                error!("Failed to verify networks table: {}", e);
+                NetworkError::Database(e)
+            })?;
+            
+        Ok(Self { 
+            connection_manager: Arc::new(connection_manager) 
+        })
+    }
+
+    pub fn get_pool(&self) -> &PgPool {
+        self.connection_manager.get_pool()
     }
 
     pub async fn get_all(&self) -> Result<Vec<Network>, NetworkError> {
         sqlx::query_as::<_, Network>("SELECT * FROM networks")
-            .fetch_all(&*self.pool)
+            .fetch_all(self.get_pool())
             .await
             .map_err(NetworkError::Database)
     }
@@ -132,7 +241,7 @@ impl NetworkService {
     pub async fn get_by_id(&self, network_id: i32) -> Result<Option<Network>, NetworkError> {
         sqlx::query_as::<_, Network>("SELECT * FROM networks WHERE network_id = $1")
             .bind(network_id)
-            .fetch_optional(&*self.pool)
+            .fetch_optional(self.get_pool())
             .await
             .map_err(NetworkError::Database)
     }
@@ -167,7 +276,7 @@ impl NetworkService {
         .bind(&network.phone_number)
         .bind(&network.address)
         .bind(&network.created_by)
-        .fetch_one(&*self.pool)
+        .fetch_one(self.get_pool())
         .await;
 
         match result {
@@ -212,7 +321,7 @@ impl NetworkService {
         .bind(&network.address)
         .bind(&network.updated_by)
         .bind(network_id)
-        .fetch_one(&*self.pool)
+        .fetch_one(self.get_pool())
         .await;
 
         match result {
@@ -228,7 +337,7 @@ impl NetworkService {
     pub async fn delete(&self, network_id: i32) -> Result<bool, NetworkError> {
         let result = sqlx::query("DELETE FROM networks WHERE network_id = $1")
             .bind(network_id)
-            .execute(&*self.pool)
+            .execute(self.get_pool())
             .await
             .map_err(NetworkError::Database)?;
 
@@ -241,11 +350,12 @@ impl NetworkService {
 
     // Health check method
     pub async fn health_check(&self) -> Result<(), NetworkError> {
-        sqlx::query("SELECT 1")
-            .execute(&*self.pool)
-            .await
-            .map_err(NetworkError::Database)?;
-        Ok(())
+        self.connection_manager.health_check().await
+    }
+
+    // Get connection pool statistics
+    pub async fn get_pool_stats(&self) -> Result<PoolStats, NetworkError> {
+        self.connection_manager.get_connection_stats().await
     }
 }
 
@@ -302,6 +412,25 @@ async fn health_check(service: web::Data<NetworkService>) -> HttpResponse {
         Ok(_) => HttpResponse::Ok().json("Service is healthy"),
         Err(e) => {
             error!("Health check failed: {}", e);
+            HttpResponse::ServiceUnavailable().json("Service is unhealthy")
+        }
+    }
+}
+
+// Pool stats handler
+#[utoipa::path(
+    get,
+    path = "/api/v1/health/pool",
+    responses(
+        (status = 200, description = "Pool statistics", body = PoolStats),
+        (status = 503, description = "Service is unhealthy")
+    )
+)]
+async fn pool_stats(service: web::Data<NetworkService>) -> HttpResponse {
+    match service.get_pool_stats().await {
+        Ok(stats) => HttpResponse::Ok().json(stats),
+        Err(e) => {
+            error!("Failed to get pool stats: {}", e);
             HttpResponse::ServiceUnavailable().json("Service is unhealthy")
         }
     }
@@ -428,6 +557,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope(API_PREFIX)
             .route("/health", web::get().to(health_check))
+            .route("/health/pool", web::get().to(pool_stats))
             .route("/networks", web::get().to(get_all_networks))
             .route("/networks", web::post().to(create_network))
             .route("/networks/{network_id}", web::get().to(get_network_by_id))
@@ -441,13 +571,14 @@ pub fn config(cfg: &mut web::ServiceConfig) {
 #[openapi(
     paths(
         health_check,
+        pool_stats,
         get_all_networks,
         get_network_by_id,
         create_network,
         update_network,
         delete_network
     ),
-    components(schemas(Network, NetworkCreate, NetworkUpdate)),
+    components(schemas(Network, NetworkCreate, NetworkUpdate, PoolStats)),
     tags(
         (name = "Network", description = "Network management endpoints")
     )
@@ -475,7 +606,13 @@ async fn main() -> std::io::Result<()> {
 
     info!("Starting Configurator Service...");
 
-    let service = match NetworkService::new(&database_url).await {
+    // Get max connections from environment variable
+    let max_connections = std::env::var("DB_MAX_CONNECTIONS")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(DEFAULT_MAX_CONNECTIONS);
+
+    let service = match NetworkService::new_with_config(&database_url, max_connections).await {
         Ok(service) => service,
         Err(e) => {
             error!("Failed to create NetworkService: {}", e);
