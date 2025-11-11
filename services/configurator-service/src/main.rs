@@ -1,6 +1,6 @@
-use configurator_service::start_server;
+use configurator_service::startup;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    start_server().await
+    startup().await
 }

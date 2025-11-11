@@ -2,11 +2,13 @@ use dotenvy::dotenv;
 use std::env;
 use tracing_subscriber::{EnvFilter, fmt};
 
-/// Initializes a tracing-based logger.
-/// Automatically reads LOG_LEVEL from .env or defaults to "info".
+/// Initializes the global tracing-based logger.
+/// Automatically reads LOG_LEVEL from `.env` or defaults to "info".
 pub fn init_logger() {
+    // Load .env variables (optional)
     dotenv().ok();
 
+    // Default log level
     let log_level = env::var("LOG_LEVEL").unwrap_or_else(|_| "info".to_string());
 
     // Configure tracing subscriber
@@ -16,11 +18,11 @@ pub fn init_logger() {
 
     fmt()
         .with_env_filter(env_filter)
-        .with_target(false) // hide target module names
-        .with_level(true)
+        .with_target(false)      // hide target module names
+        .with_level(true)        // show log level
         .with_thread_ids(false)
         .with_line_number(true)
-        .compact() // shorter format
+        .compact()               // shorter format
         .init();
 
     tracing::info!("🪵 Logger initialized with level: {}", log_level);

@@ -1,8 +1,9 @@
-use crate::core::{AppError, Database, logger};
+use crate::core::{AppError, Database};
 use crate::domain::network::{Network, NetworkId, NetworkRepository};
 use crate::domain::value_objects::{Address, Email, NetworkType, PhoneNumber};
 use chrono::NaiveDateTime;
 use sqlx::FromRow;
+use tracing::info; // ✅ import tracing macros
 
 const INSERT_QUERY: &str = r#"
     INSERT INTO networks (id, name, network_type, contact_email, phone_number, address, owner_name, created_at, updated_at, created_by)
@@ -87,15 +88,15 @@ impl NetworkRepository for PostgresNetworkRepository {
                 &network.contact_email().as_ref().map(|e| e.value()), 
                 &network.phone_number().as_ref().map(|p| p.value()), 
                 &network.address().as_ref().map(|a| a.value()), 
-                &network.owner_name(), &network.created_at(), 
-                &network.updated_at(), &network.created_by()])
+                &network.owner_name(), &network.created_at, 
+                &network.updated_at, &network.created_by])
             .await?;
 
         if rows_affected == 0 {
             return Err(AppError::database("Failed to create network").into());
         }
 
-        logger::info!("Network created successfully: {}", network.name());
+        info!("Network created successfully: {}", network.name());
         Ok(())
     }
 
@@ -134,7 +135,7 @@ impl NetworkRepository for PostgresNetworkRepository {
             .bind(network.phone_number().as_ref().map(|p| p.value()))
             .bind(network.address().as_ref().map(|a| a.value()))
             .bind(network.owner_name())
-            .bind(network.updated_at())
+            .bind(network.updated_at)
             .execute(self.db.pool())
             .await?;
 
@@ -142,7 +143,7 @@ impl NetworkRepository for PostgresNetworkRepository {
             return Err(AppError::not_found("Network").into());
         }
 
-        logger::info!("Network updated successfully: {}", network.name());
+        info!("Network updated successfully: {}", network.name());
         Ok(())
     }
 
@@ -156,7 +157,7 @@ impl NetworkRepository for PostgresNetworkRepository {
             return Err(AppError::not_found("Network").into());
         }
 
-        logger::info!("Network deleted successfully: {}", id.0);
+        info!("Network deleted successfully: {}", id.0);
         Ok(())
     }
 }

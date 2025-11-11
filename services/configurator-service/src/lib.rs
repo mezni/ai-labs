@@ -1,53 +1,52 @@
+pub mod domain;
+pub mod application;
+pub mod infrastructure;
 pub mod api;
-pub mod core;
+pub mod shared;
 
-use actix_web::{App, HttpServer, web};
-use api::openapi::ApiDoc;
-use core::{AppConfig, Database, logger};
-use std::io;
-use utoipa::OpenApi;
-use utoipa_swagger_ui::SwaggerUi; // Add this import
+use actix_web::{App, HttpServer, middleware};
+use actix_cors::Cors;
+use shared::{config::AppConfig, logger, database};
+use sqlx::PgPool;
+use api::routes::init_routes;
+use tracing::info;
 
-/// Builds and configures the Actix Web application
-pub fn build_app(
-    db: Database,
-) -> App<
-    impl actix_web::dev::ServiceFactory<
-        actix_web::dev::ServiceRequest,
-        Config = (),
-        Response = actix_web::dev::ServiceResponse,
-        Error = actix_web::Error,
-        InitError = (),
-    >,
-> {
-    App::new()
-        .app_data(web::Data::new(db))
-        .configure(api::routes::configure_routes)
-        // Swagger UI available at /swagger-ui
-        .service(
-            SwaggerUi::new("/swagger-ui/{_:.*}").url("/swagger-ui/openapi.json", ApiDoc::openapi()), // This should work now
-        )
-}
+pub async fn startup() -> std::io::Result<()> {
+    // Load config from .env
+    let config = AppConfig::from_env();
 
-/// Starts the HTTP server using .env configuration
-pub async fn start_server() -> io::Result<()> {
-    dotenvy::dotenv().ok();
+    // Initialize global logger with log level from .env
+    logger::init(&config);
 
-    // Load configuration and initialize logger
-    let config = AppConfig::new().expect("Failed to load configuration");
-    logger::init_logger();
+    info!("Starting configurator-service at {}:{}", config.host, config.port);
 
-    // Initialize database
-    let db = Database::new(&config)
+    // Create PostgreSQL connection pool
+    let db_pool: PgPool = database::create_pg_pool(&config)
         .await
-        .expect("Failed to connect to database");
+        .expect("Failed to create DB pool");
 
-    let address = config.server_address();
+    info!("Database connected");
 
-    tracing::info!("🚀 Starting server at http://{}", address);
+    // Configure CORS
+    let cors = Cors::default()
+        .allowed_origin_fn(move |origin, _req_head| {
+            let origin_str = origin.to_str().unwrap_or_default();
+            config.cors_allowed_origins.contains(&origin_str.to_string())
+                || config.cors_allowed_origins.contains(&"*".to_string())
+        })
+        .allow_any_method()
+        .allow_any_header()
+        .supports_credentials();
 
-    HttpServer::new(move || build_app(db.clone()))
-        .bind(address)?
-        .run()
-        .await
+    // Start HTTP server
+    HttpServer::new(move || {
+        App::new()
+            .wrap(cors)
+            .wrap(middleware::Logger::default())
+            .app_data(actix_web::web::Data::new(db_pool.clone()))
+            .configure(init_routes)
+    })
+    .bind((config.host.as_str(), config.port))?
+    .run()
+    .await
 }
