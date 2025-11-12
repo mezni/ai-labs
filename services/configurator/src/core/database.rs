@@ -1,5 +1,5 @@
-use crate::core::errors::AppError;
 use crate::core::constants::DEFAULT_MAX_CONNECTIONS;
+use crate::core::errors::AppError;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, postgres::PgPoolOptions};
 use std::sync::Arc;
@@ -17,10 +17,7 @@ impl ConnectionManager {
         Self::with_config(database_url, DEFAULT_MAX_CONNECTIONS).await
     }
 
-    pub async fn with_config(
-        database_url: &str,
-        max_connections: u32,
-    ) -> Result<Self, AppError> {
+    pub async fn with_config(database_url: &str, max_connections: u32) -> Result<Self, AppError> {
         info!(
             "Initializing connection pool with {} max connections",
             max_connections

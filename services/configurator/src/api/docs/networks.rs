@@ -1,7 +1,7 @@
-use utoipa::OpenApi;
-use crate::domain::networks::Network;
 use crate::application::dtos::networks::{NetworkCreate, NetworkUpdate};
 use crate::core::database::PoolStats;
+use crate::domain::networks::Network;
+use utoipa::OpenApi;
 
 // Add security scheme to OpenAPI
 pub struct SecurityAddon;

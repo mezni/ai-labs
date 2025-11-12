@@ -1,9 +1,9 @@
-use crate::core::errors::AppError;
-use crate::core::database::ConnectionManager;
-use crate::domain::networks::Network;
 use crate::application::dtos::networks::{NetworkCreate, NetworkUpdate};
-use tracing::{error, info};
+use crate::core::database::ConnectionManager;
+use crate::core::errors::AppError;
+use crate::domain::networks::Network;
 use std::sync::Arc;
+use tracing::{error, info};
 
 #[derive(Clone)]
 pub struct NetworkRepository {
@@ -34,7 +34,11 @@ impl NetworkRepository {
             .map_err(AppError::Database)
     }
 
-    pub async fn create(&self, network: NetworkCreate, username: String) -> Result<Network, AppError> {
+    pub async fn create(
+        &self,
+        network: NetworkCreate,
+        username: String,
+    ) -> Result<Network, AppError> {
         let result = sqlx::query_as::<_, Network>(
             r#"
             INSERT INTO networks (name, type, contact_email, phone_number, address, created_by)

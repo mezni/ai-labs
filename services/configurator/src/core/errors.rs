@@ -45,15 +45,9 @@ impl actix_web::ResponseError for AppError {
     fn error_response(&self) -> HttpResponse {
         match self {
             AppError::NotFound(_) => HttpResponse::NotFound().json(self.to_string()),
-            AppError::CreateFailed(_) => {
-                HttpResponse::InternalServerError().json(self.to_string())
-            }
-            AppError::UpdateFailed(_) => {
-                HttpResponse::InternalServerError().json(self.to_string())
-            }
-            AppError::DeleteFailed(_) => {
-                HttpResponse::InternalServerError().json(self.to_string())
-            }
+            AppError::CreateFailed(_) => HttpResponse::InternalServerError().json(self.to_string()),
+            AppError::UpdateFailed(_) => HttpResponse::InternalServerError().json(self.to_string()),
+            AppError::DeleteFailed(_) => HttpResponse::InternalServerError().json(self.to_string()),
             AppError::Validation(_) => HttpResponse::BadRequest().json(self.to_string()),
             AppError::ServiceUnavailable(_) => {
                 HttpResponse::ServiceUnavailable().json(self.to_string())
@@ -69,9 +63,7 @@ impl actix_web::ResponseError for AppError {
                 error!("Connection pool error: {}", e);
                 HttpResponse::ServiceUnavailable().json("Service temporarily unavailable")
             }
-            AppError::Internal(_) => {
-                HttpResponse::InternalServerError().json(self.to_string())
-            }
+            AppError::Internal(_) => HttpResponse::InternalServerError().json(self.to_string()),
         }
     }
 }

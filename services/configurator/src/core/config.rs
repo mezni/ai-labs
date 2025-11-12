@@ -43,6 +43,10 @@ impl Config {
     }
 
     pub fn api_base_url(&self) -> String {
-        format!("http://{}{}", self.server_address(), crate::core::constants::API_PREFIX)
+        format!(
+            "http://{}{}",
+            self.server_address(),
+            crate::core::constants::API_PREFIX
+        )
     }
 }

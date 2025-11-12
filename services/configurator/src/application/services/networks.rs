@@ -1,7 +1,7 @@
-use crate::core::errors::AppError;
-use crate::core::database::PoolStats;
-use crate::domain::networks::Network;
 use crate::application::dtos::networks::{NetworkCreate, NetworkUpdate};
+use crate::core::database::PoolStats;
+use crate::core::errors::AppError;
+use crate::domain::networks::Network;
 use crate::infrastructure::repositories::networks::NetworkRepository;
 use tracing::{error, info};
 
@@ -23,7 +23,11 @@ impl NetworkService {
         self.repository.get_by_id(network_id).await
     }
 
-    pub async fn create(&self, network: NetworkCreate, username: String) -> Result<Network, AppError> {
+    pub async fn create(
+        &self,
+        network: NetworkCreate,
+        username: String,
+    ) -> Result<Network, AppError> {
         // Validate network type
         if network.type_ != "individual" && network.type_ != "company" {
             return Err(AppError::validation(

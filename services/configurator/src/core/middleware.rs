@@ -1,22 +1,22 @@
 use actix_web::{Error, HttpMessage};
-use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
-use serde::{Deserialize, Serialize};
-use std::future::{ready, Ready};
-use thiserror::Error;
 use dotenvy::dotenv;
+use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode};
+use serde::{Deserialize, Serialize};
+use std::future::{Ready, ready};
+use thiserror::Error;
 
 // === ERROR TYPES ===
 #[derive(Error, Debug)]
 pub enum AuthError {
     #[error("Invalid token")]
     InvalidToken,
-    
+
     #[error("Token expired")]
     TokenExpired,
-    
+
     #[error("Insufficient permissions")]
     InsufficientPermissions,
-    
+
     #[error("Missing token")]
     MissingToken,
 }
@@ -24,10 +24,18 @@ pub enum AuthError {
 impl actix_web::ResponseError for AuthError {
     fn error_response(&self) -> actix_web::HttpResponse {
         match self {
-            AuthError::InvalidToken => actix_web::HttpResponse::Unauthorized().json("Invalid token"),
-            AuthError::TokenExpired => actix_web::HttpResponse::Unauthorized().json("Token expired"),
-            AuthError::InsufficientPermissions => actix_web::HttpResponse::Forbidden().json("Insufficient permissions"),
-            AuthError::MissingToken => actix_web::HttpResponse::Unauthorized().json("Missing token"),
+            AuthError::InvalidToken => {
+                actix_web::HttpResponse::Unauthorized().json("Invalid token")
+            }
+            AuthError::TokenExpired => {
+                actix_web::HttpResponse::Unauthorized().json("Token expired")
+            }
+            AuthError::InsufficientPermissions => {
+                actix_web::HttpResponse::Forbidden().json("Insufficient permissions")
+            }
+            AuthError::MissingToken => {
+                actix_web::HttpResponse::Unauthorized().json("Missing token")
+            }
         }
     }
 }
@@ -35,9 +43,9 @@ impl actix_web::ResponseError for AuthError {
 // === JWT CLAIMS ===
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
-    pub sub: String,     // username
-    pub role: String,    // user role
-    pub exp: u64,        // expiry timestamp
+    pub sub: String,  // username
+    pub role: String, // user role
+    pub exp: u64,     // expiry timestamp
 }
 
 // === AUTHENTICATED USER ===
@@ -60,12 +68,13 @@ impl actix_web::FromRequest for AuthenticatedUser {
             .unwrap_or_else(|_| panic!("JWT_SECRET not set in environment"))
             .trim()
             .to_string();
-        
+
         let decoding_key = DecodingKey::from_secret(jwt_secret.as_bytes());
         let validation = Validation::new(Algorithm::HS256);
 
         // ✅ Extract token from Authorization header
-        let token = req.headers()
+        let token = req
+            .headers()
             .get("Authorization")
             .and_then(|header| header.to_str().ok())
             .and_then(|header| header.strip_prefix("Bearer "))
@@ -78,12 +87,10 @@ impl actix_web::FromRequest for AuthenticatedUser {
 
         // ✅ Verify and decode the token
         match decode::<Claims>(&token, &decoding_key, &validation) {
-            Ok(token_data) => {
-                ready(Ok(AuthenticatedUser {
-                    username: token_data.claims.sub,
-                    role: token_data.claims.role,
-                }))
-            }
+            Ok(token_data) => ready(Ok(AuthenticatedUser {
+                username: token_data.claims.sub,
+                role: token_data.claims.role,
+            })),
             Err(e) => {
                 let auth_error = match e.kind() {
                     jsonwebtoken::errors::ErrorKind::ExpiredSignature => AuthError::TokenExpired,

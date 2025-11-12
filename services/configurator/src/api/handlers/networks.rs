@@ -1,9 +1,9 @@
-use actix_web::{web, HttpResponse};
-use crate::application::services::networks::NetworkService;
 use crate::application::dtos::networks::{NetworkCreate, NetworkUpdate};
+use crate::application::services::networks::NetworkService;
 use crate::core::errors::AppError;
-use crate::domain::networks::Network;
 use crate::core::middleware::{AuthenticatedUser, require_role};
+use crate::domain::networks::Network;
+use actix_web::{HttpResponse, web};
 use utoipa::path;
 
 // Get all networks (public)
@@ -141,8 +141,7 @@ pub async fn delete_network(
     service: web::Data<NetworkService>,
     user: AuthenticatedUser,
 ) -> Result<HttpResponse, AppError> {
-    require_role(&user, "admin")
-        .map_err(|e| AppError::authorization(&e.to_string()))?;
+    require_role(&user, "admin").map_err(|e| AppError::authorization(&e.to_string()))?;
 
     service.delete(network_id.into_inner()).await?;
     Ok(HttpResponse::NoContent().finish())

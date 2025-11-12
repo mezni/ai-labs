@@ -1,5 +1,5 @@
 // main.rs
-use configurator::{ApplicationBuilder, init_logging, Config};
+use configurator::{ApplicationBuilder, Config, init_logging};
 use tracing::info;
 
 #[actix_web::main]
@@ -9,11 +9,16 @@ async fn main() -> std::io::Result<()> {
 
     info!("Starting Configurator Service...");
 
-    let service = ApplicationBuilder::create_service_with_config(&config).await
+    let service = ApplicationBuilder::create_service_with_config(&config)
+        .await
         .expect("Failed to create service");
 
     let address = config.server_address();
-    info!("🚀 Server running on http://{}{}", address, configurator::get_api_prefix());
+    info!(
+        "🚀 Server running on http://{}{}",
+        address,
+        configurator::get_api_prefix()
+    );
     info!("📚 Swagger UI available on http://{}/swagger-ui/", address);
     info!("🔐 JWT Authentication is enabled");
 
