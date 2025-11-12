@@ -1,0 +1,17 @@
+[package]
+name = "configurator"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+actix-web = "4.11.0"
+serde = { version = "1.0.228", features = ["derive"] }
+sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio", "chrono"] }
+chrono = { version = "0.4.42", features = ["serde"] }
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+utoipa = { version = "5.4.0", features = ["actix_extras"] }
+utoipa-swagger-ui = { version = "9.0.2", features = ["actix-web"] }
+dotenvy = "0.15.7"
+thiserror = "2.0.17"
+jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"] }
