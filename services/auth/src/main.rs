@@ -12,7 +12,7 @@ use utoipa_swagger_ui::SwaggerUi;
 
 // === CONSTANTS ===
 const API_PREFIX: &str = "/api/v1";
-const JWT_SECRET: &str = "your-secret-key-change-in-production";
+const JWT_SECRET: &str = "secret123";
 const JWT_EXPIRY_HOURS: u64 = 24;
 
 // === ERROR TYPES ===
@@ -184,14 +184,19 @@ pub struct AuthService {
 
 impl AuthService {
     pub fn new() -> Self {
+        dotenvy::dotenv().ok(); // ensure .env is loaded
+
         let user_repo = UserRepository::new();
-        let jwt_secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| JWT_SECRET.to_string());
+        let jwt_secret = std::env::var("JWT_SECRET")
+            .unwrap_or_else(|_| panic!("JWT_SECRET not found in .env"))
+            .trim()
+            .to_string();
 
         Self {
             user_repo,
-            jwt_secret: jwt_secret.clone(),
-            encoding_key: EncodingKey::from_secret(jwt_secret.as_ref()),
-            decoding_key: DecodingKey::from_secret(jwt_secret.as_ref()),
+            encoding_key: EncodingKey::from_secret(jwt_secret.as_bytes()),
+            decoding_key: DecodingKey::from_secret(jwt_secret.as_bytes()),
+            jwt_secret,
         }
     }
 
@@ -486,7 +491,7 @@ async fn main() -> std::io::Result<()> {
     let server_port = std::env::var("SERVER_PORT")
         .ok()
         .and_then(|p| p.parse::<u16>().ok())
-        .unwrap_or(8080);
+        .unwrap_or(5100);
     let log_level = std::env::var("LOG_LEVEL").unwrap_or_else(|_| "info".to_string());
 
     // Initialize logging
