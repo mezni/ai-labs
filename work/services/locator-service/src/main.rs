@@ -1,345 +1,499 @@
-use actix_cors::Cors;
-use actix_web::{get, web, App, HttpServer, Result, HttpResponse};
+use actix_web::{get, web, App, HttpServer, HttpResponse, Result};
 use serde::{Deserialize, Serialize};
-use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
-use rust_decimal::prelude::*;
+use sqlx::{PgPool, postgres::PgPoolOptions, Row};
+use std::env;
+use utoipa::{OpenApi, ToSchema};
+use utoipa_swagger_ui::SwaggerUi;
 
-// Database connection pool type
-type DbPool = Pool<Postgres>;
-
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
-pub struct NearbyStation {
-    pub station_id: i32,
-    pub name: String,
-    pub address: String,
-    pub city: Option<String>,
-    pub distance_km: f64,
-    pub max_power_kw: Option<f64>,
-    pub available_connectors: i32,
-    pub total_connectors: i32,
-    pub connector_types: Option<Vec<String>>,
-    pub power_tier: Option<String>,
-    pub is_operational: Option<bool>, // Made optional
-    pub latitude: f64,
-    pub longitude: f64,
+// Request and Response models with OpenAPI documentation
+#[derive(Debug, Deserialize, ToSchema, OpenApi)]
+#[serde(rename_all = "camelCase")]
+struct NearbyStationsRequest {
+    /// Longitude coordinate (x-axis)
+    #[schema(example = 10.1815)]
+    longitude: f64,
+    
+    /// Latitude coordinate (y-axis)  
+    #[schema(example = 36.8065)]
+    latitude: f64,
+    
+    /// Search radius in kilometers
+    #[schema(example = 5.0, minimum = 0.1, maximum = 100.0)]
+    radius_km: Option<f64>,
+    
+    /// Maximum number of results to return
+    #[schema(example = 10, minimum = 1, maximum = 100)]
+    max_results: Option<i32>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
-pub struct StationDetails {
-    pub station_id: i32,
-    pub name: String,
-    pub address: String,
-    pub city: Option<String>,
-    pub state: Option<String>,
-    pub country: Option<String>,
-    pub postal_code: Option<String>,
-    pub latitude: f64,
-    pub longitude: f64,
-    pub max_power_kw: Option<f64>,
-    pub available_connectors: i32,
-    pub total_connectors: i32,
-    pub connector_types: Option<Vec<String>>,
-    pub power_tier: Option<String>,
-    pub connectors: Option<serde_json::Value>,
-    pub tags: Option<serde_json::Value>,
-    pub network_name: Option<String>,
-    pub is_operational: Option<bool>, // Made optional
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct NearbyStationsDetailRequest {
+    /// Longitude coordinate (x-axis)
+    #[schema(example = 10.1815)]
+    longitude: f64,
+    
+    /// Latitude coordinate (y-axis)
+    #[schema(example = 36.8065)]
+    latitude: f64,
+    
+    /// Search radius in kilometers
+    #[schema(example = 5.0, minimum = 0.1, maximum = 100.0)]
+    radius_km: Option<f64>,
+    
+    /// Minimum power in kW for filtering
+    #[schema(example = 50.0, minimum = 0.0, maximum = 1000.0)]
+    min_power_kw: Option<f64>,
+    
+    /// Filter by connector types
+    #[schema(example = json!(["CCS Combo 1", "Type 2"]))]
+    connector_types: Option<Vec<String>>,
+    
+    /// Filter by power tiers
+    #[schema(example = json!(["ultra_fast", "fast"]))]
+    power_tiers: Option<Vec<String>>,
+    
+    /// Maximum number of results to return
+    #[schema(example = 10, minimum = 1, maximum = 100)]
+    max_results: Option<i32>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
-pub struct ConnectorType {
-    pub connector_type_id: i32,
-    pub name: String,
-    pub description: Option<String>,
-    pub current_type: String,
-    pub typical_power_kw: Option<f64>,
-    pub standard: Option<String>,
+#[derive(Debug, Serialize, Clone, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct Station {
+    /// Unique station identifier
+    station_id: i32,
+    
+    /// Station name
+    name: String,
+    
+    /// Physical address
+    address: String,
+    
+    /// City where station is located
+    city: String,
+    
+    /// Distance from search location in kilometers
+    distance_km: f64,
+    
+    /// Maximum power available at this station in kW
+    max_power_kw: f64,
+    
+    /// Number of currently available connectors
+    available_connectors: i32,
+    
+    /// Total number of connectors at this station
+    total_connectors: i32,
+    
+    /// Types of connectors available
+    connector_types: Vec<String>,
+    
+    /// Power tier classification
+    #[schema(example = "fast")]
+    power_tier: String,
+    
+    /// Whether the station is operational
+    is_operational: bool,
+    
+    /// Station latitude
+    latitude: f64,
+    
+    /// Station longitude  
+    longitude: f64,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct NearbyQuery {
-    pub longitude: f64,
-    pub latitude: f64,
-    pub radius_km: Option<f64>,
-    pub limit: Option<i32>,
-    pub offset: Option<i32>,
+#[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct ApiResponse<T> {
+    /// Indicates if the request was successful
+    success: bool,
+    
+    /// The response data
+    data: T,
+    
+    /// Number of items returned
+    count: usize,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct AdvancedNearbyQuery {
-    pub longitude: f64,
-    pub latitude: f64,
-    pub radius_km: Option<f64>,
-    pub min_power_kw: Option<f64>,
-    pub connector_types: Option<Vec<String>>,
-    pub power_tiers: Option<Vec<String>>,
-    pub limit: Option<i32>,
-    pub offset: Option<i32>,
+#[derive(Debug, Serialize, ToSchema)]
+struct ErrorResponse {
+    /// Indicates if the request was successful
+    success: bool,
+    
+    /// Error message description
+    error: String,
 }
 
-#[derive(Debug, Serialize)]
-pub struct ApiResponse<T> {
-    pub success: bool,
-    pub data: Option<T>,
-    pub error: Option<String>,
+#[derive(Debug, Serialize, ToSchema)]
+struct HealthResponse {
+    /// Service status
+    status: String,
+    
+    /// Service name
+    service: String,
+    
+    /// API version
+    version: String,
+    
+    /// Timestamp of the check
+    timestamp: String,
 }
 
-impl<T> ApiResponse<T> {
-    fn success(data: T) -> Self {
-        Self {
-            success: true,
-            data: Some(data),
-            error: None,
-        }
-    }
+#[derive(Debug, Serialize, ToSchema)]
+struct ApiInfo {
+    /// API name
+    name: String,
+    
+    /// API version
+    version: String,
+    
+    /// API description
+    description: String,
+    
+    /// Available endpoints
+    endpoints: std::collections::HashMap<String, String>,
+}
 
-    fn error(message: String) -> Self {
-        Self {
+// Database connection pool
+struct AppState {
+    db_pool: PgPool,
+}
+
+// OpenAPI documentation
+#[derive(OpenApi)]
+#[openapi(
+    paths(
+        find_nearby_stations,
+        find_nearby_stations_detail,
+        health_check,
+        index
+    ),
+    components(
+        schemas(
+            NearbyStationsRequest,
+            NearbyStationsDetailRequest,
+            Station,
+            ApiResponse<Station>,
+            ErrorResponse,
+            HealthResponse,
+            ApiInfo
+        )
+    ),
+    tags(
+        (name = "Charging Stations", description = "EV Charging Stations API")
+    ),
+    info(
+        title = "Charging Stations API",
+        description = "REST API for finding electric vehicle charging stations",
+        contact(
+            name = "API Support",
+            email = "support@example.com"
+        ),
+        license(
+            name = "MIT",
+            url = "https://opensource.org/licenses/MIT"
+        ),
+        version = "1.0.0"
+    )
+)]
+struct ApiDoc;
+
+// Helper function to map database row to Station struct
+fn row_to_station(row: &sqlx::postgres::PgRow) -> Result<Station, sqlx::Error> {
+    let connector_types: Option<Vec<String>> = row.try_get("connector_types")?;
+    
+    Ok(Station {
+        station_id: row.try_get("station_id")?,
+        name: row.try_get("name")?,
+        address: row.try_get("address")?,
+        city: row.try_get("city")?,
+        distance_km: row.try_get("distance_km")?,
+        max_power_kw: row.try_get("max_power_kw")?,
+        available_connectors: row.try_get("available_connectors")?,
+        total_connectors: row.try_get("total_connectors")?,
+        connector_types: connector_types.unwrap_or_default(),
+        power_tier: row.try_get("power_tier")?,
+        is_operational: row.try_get("is_operational")?,
+        latitude: row.try_get("latitude")?,
+        longitude: row.try_get("longitude")?,
+    })
+}
+
+// Handler for find_nearby_stations
+#[utoipa::path(
+    context_path = "/api/stations",
+    params(
+        ("longitude" = f64, Query, description = "Longitude coordinate"),
+        ("latitude" = f64, Query, description = "Latitude coordinate"),
+        ("radius_km" = Option<f64>, Query, description = "Search radius in kilometers"),
+        ("max_results" = Option<i32>, Query, description = "Maximum number of results")
+    ),
+    responses(
+        (status = 200, description = "Successfully found nearby stations", body = ApiResponse<Station>),
+        (status = 400, description = "Invalid parameters", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    ),
+    tag = "Charging Stations"
+)]
+#[get("/nearby")]
+async fn find_nearby_stations(
+    data: web::Data<AppState>,
+    query: web::Query<NearbyStationsRequest>,
+) -> Result<HttpResponse> {
+    let radius_km = query.radius_km.unwrap_or(10.0);
+    let max_results = query.max_results.unwrap_or(50);
+
+    // Validate coordinates
+    if query.longitude < -180.0 || query.longitude > 180.0 {
+        let error_response = ErrorResponse {
             success: false,
-            data: None,
-            error: Some(message),
-        }
+            error: "Longitude must be between -180 and 180".to_string(),
+        };
+        return Ok(HttpResponse::BadRequest().json(error_response));
     }
-}
-
-// Helper function to convert BigDecimal to f64
-fn bigdecimal_to_f64(decimal: Option<sqlx::types::BigDecimal>) -> Option<f64> {
-    decimal.and_then(|d| d.to_f64())
-}
-// ... (keep all the imports and struct definitions the same)
-
-// API Handlers with better error logging
-#[get("/api/stations/nearby")]
-async fn get_nearby_stations(
-    pool: web::Data<DbPool>,
-    query: web::Query<NearbyQuery>,
-) -> Result<HttpResponse> {
-    log::info!("Searching nearby stations: longitude={}, latitude={}, radius={}km", 
-        query.longitude, query.latitude, query.radius_km.unwrap_or(10.0));
     
-    let stations = sqlx::query_as::<_, NearbyStation>(
-        "SELECT * FROM find_nearby_stations($1, $2, $3, $4, $5)"
+    if query.latitude < -90.0 || query.latitude > 90.0 {
+        let error_response = ErrorResponse {
+            success: false,
+            error: "Latitude must be between -90 and 90".to_string(),
+        };
+        return Ok(HttpResponse::BadRequest().json(error_response));
+    }
+
+    // Use dynamic query instead of macro
+    let rows = sqlx::query(
+        "SELECT * FROM find_nearby_stations($1, $2, $3, $4)"
     )
     .bind(query.longitude)
     .bind(query.latitude)
-    .bind(query.radius_km.unwrap_or(10.0))
-    .bind(query.limit.unwrap_or(50))
-    .bind(query.offset.unwrap_or(0))
-    .fetch_all(pool.get_ref())
+    .bind(radius_km)
+    .bind(max_results)
+    .fetch_all(&data.db_pool)
     .await;
 
-    match stations {
-        Ok(stations) => {
-            log::info!("Found {} stations", stations.len());
-            Ok(HttpResponse::Ok().json(ApiResponse::success(stations)))
-        },
-        Err(e) => {
-            log::error!("Database error in find_nearby_stations: {}", e);
-            Ok(HttpResponse::InternalServerError().json(ApiResponse::<Vec<NearbyStation>>::error(
-                format!("Failed to fetch nearby stations: {}", e)
-            )))
-        }
-    }
-}
-
-#[get("/api/stations/nearby/detailed")]
-async fn get_nearby_stations_detailed(
-    pool: web::Data<DbPool>,
-    query: web::Query<AdvancedNearbyQuery>,
-) -> Result<HttpResponse> {
-    log::info!("Detailed station search: longitude={}, latitude={}, filters: min_power={:?}, connectors={:?}", 
-        query.longitude, query.latitude, query.min_power_kw, query.connector_types);
-    
-    let stations = sqlx::query_as::<_, NearbyStation>(
-        "SELECT * FROM find_nearby_stations_detail($1, $2, $3, $4, $5, $6, $7, $8)"
-    )
-    .bind(query.longitude)
-    .bind(query.latitude)
-    .bind(query.radius_km.unwrap_or(10.0))
-    .bind(query.min_power_kw)
-    .bind(&query.connector_types)
-    .bind(&query.power_tiers)
-    .bind(query.limit.unwrap_or(50))
-    .bind(query.offset.unwrap_or(0))
-    .fetch_all(pool.get_ref())
-    .await;
-
-    match stations {
-        Ok(stations) => {
-            log::info!("Found {} stations with detailed filters", stations.len());
-            Ok(HttpResponse::Ok().json(ApiResponse::success(stations)))
-        },
-        Err(e) => {
-            log::error!("Database error in find_nearby_stations_detail: {}", e);
-            Ok(HttpResponse::InternalServerError().json(ApiResponse::<Vec<NearbyStation>>::error(
-                format!("Failed to fetch nearby stations: {}", e)
-            )))
-        }
-    }
-}
-
-// ... (keep other handlers the same with similar error logging)
-#[get("/api/stations/{station_id}")]
-async fn get_station_details(
-    pool: web::Data<DbPool>,
-    path: web::Path<i64>,
-) -> Result<HttpResponse> {
-    let station_id = path.into_inner();
-    
-    let station = sqlx::query_as::<_, StationDetails>(
-        "SELECT * FROM get_station_details($1)"
-    )
-    .bind(station_id)
-    .fetch_optional(pool.get_ref())
-    .await;
-
-    match station {
-        Ok(Some(station)) => Ok(HttpResponse::Ok().json(ApiResponse::success(station))),
-        Ok(None) => Ok(HttpResponse::NotFound().json(ApiResponse::<StationDetails>::error(
-            "Station not found".to_string()
-        ))),
-        Err(e) => {
-            log::error!("Database error: {}", e);
-            Ok(HttpResponse::InternalServerError().json(ApiResponse::<StationDetails>::error(
-                "Failed to fetch station details".to_string()
-            )))
-        }
-    }
-}
-
-#[get("/api/connector-types")]
-async fn get_connector_types(
-    pool: web::Data<DbPool>,
-) -> Result<HttpResponse> {
-    let connector_types = sqlx::query_as::<_, ConnectorType>(
-        "SELECT * FROM get_connector_types()"
-    )
-    .fetch_all(pool.get_ref())
-    .await;
-
-    match connector_types {
-        Ok(types) => Ok(HttpResponse::Ok().json(ApiResponse::success(types))),
-        Err(e) => {
-            log::error!("Database error: {}", e);
-            Ok(HttpResponse::InternalServerError().json(ApiResponse::<Vec<ConnectorType>>::error(
-                "Failed to fetch connector types".to_string()
-            )))
-        }
-    }
-}
-
-#[get("/api/stats")]
-async fn get_system_stats(
-    pool: web::Data<DbPool>,
-) -> Result<HttpResponse> {
-    #[derive(Debug, Serialize)]
-    struct SystemStats {
-        total_stations: i64,
-        total_connectors: i64,
-        available_connectors: i64,
-        avg_power_kw: Option<f64>,
-        max_power_kw: Option<f64>,
-    }
-
-    let stats = sqlx::query!(
-        r#"
-        SELECT 
-            COUNT(DISTINCT s.station_id) as total_stations,
-            COUNT(c.connector_id) as total_connectors,
-            COUNT(CASE WHEN c.status = 'available' THEN 1 END) as available_connectors,
-            AVG(c.power_level_kw) as avg_power_kw,
-            MAX(c.power_level_kw) as max_power_kw
-        FROM stations s
-        LEFT JOIN connectors c ON s.station_id = c.station_id
-        WHERE s.status = 'verified'
-        "#
-    )
-    .fetch_one(pool.get_ref())
-    .await;
-
-    match stats {
-        Ok(record) => {
-            let stats = SystemStats {
-                total_stations: record.total_stations.unwrap_or(0),
-                total_connectors: record.total_connectors.unwrap_or(0),
-                available_connectors: record.available_connectors.unwrap_or(0),
-                avg_power_kw: bigdecimal_to_f64(record.avg_power_kw),
-                max_power_kw: bigdecimal_to_f64(record.max_power_kw),
+    match rows {
+        Ok(rows) => {
+            let mut stations = Vec::new();
+            for row in rows {
+                match row_to_station(&row) {
+                    Ok(station) => stations.push(station),
+                    Err(e) => {
+                        log::error!("Error mapping row to station: {}", e);
+                        continue;
+                    }
+                }
+            }
+            
+            let response = ApiResponse {
+                success: true,
+                data: stations.clone(),
+                count: stations.len(),
             };
-            Ok(HttpResponse::Ok().json(ApiResponse::success(stats)))
+            Ok(HttpResponse::Ok().json(response))
         }
         Err(e) => {
             log::error!("Database error: {}", e);
-            Ok(HttpResponse::InternalServerError().json(ApiResponse::<SystemStats>::error(
-                "Failed to fetch system stats".to_string()
-            )))
+            let error_response = ErrorResponse {
+                success: false,
+                error: "Internal server error".to_string(),
+            };
+            Ok(HttpResponse::InternalServerError().json(error_response))
         }
     }
 }
 
-#[get("/api/health")]
-async fn health_check(
-    pool: web::Data<DbPool>,
+// Handler for find_nearby_stations_detail
+#[utoipa::path(
+    context_path = "/api/stations",
+    params(
+        ("longitude" = f64, Query, description = "Longitude coordinate"),
+        ("latitude" = f64, Query, description = "Latitude coordinate"),
+        ("radius_km" = Option<f64>, Query, description = "Search radius in kilometers"),
+        ("min_power_kw" = Option<f64>, Query, description = "Minimum power in kW"),
+        ("connector_types" = Option<Vec<String>>, Query, description = "Filter by connector types"),
+        ("power_tiers" = Option<Vec<String>>, Query, description = "Filter by power tiers"),
+        ("max_results" = Option<i32>, Query, description = "Maximum number of results")
+    ),
+    responses(
+        (status = 200, description = "Successfully found nearby stations with details", body = ApiResponse<Station>),
+        (status = 400, description = "Invalid parameters", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    ),
+    tag = "Charging Stations"
+)]
+#[get("/nearby/detail")]
+async fn find_nearby_stations_detail(
+    data: web::Data<AppState>,
+    query: web::Query<NearbyStationsDetailRequest>,
 ) -> Result<HttpResponse> {
-    // Simple database health check
-    let health_check = sqlx::query("SELECT 1")
-        .execute(pool.get_ref())
-        .await;
+    let radius_km = query.radius_km.unwrap_or(10.0);
+    let max_results = query.max_results.unwrap_or(50);
+    let min_power_kw = query.min_power_kw.unwrap_or(0.0);
 
-    match health_check {
-        Ok(_) => Ok(HttpResponse::Ok().json(ApiResponse::success("API and database are healthy"))),
+    // Validate coordinates
+    if query.longitude < -180.0 || query.longitude > 180.0 {
+        let error_response = ErrorResponse {
+            success: false,
+            error: "Longitude must be between -180 and 180".to_string(),
+        };
+        return Ok(HttpResponse::BadRequest().json(error_response));
+    }
+    
+    if query.latitude < -90.0 || query.latitude > 90.0 {
+        let error_response = ErrorResponse {
+            success: false,
+            error: "Latitude must be between -90 and 90".to_string(),
+        };
+        return Ok(HttpResponse::BadRequest().json(error_response));
+    }
+
+    // Use dynamic query instead of macro
+    let rows = sqlx::query(
+        "SELECT * FROM find_nearby_stations_detail($1, $2, $3, $4, $5, $6, $7)"
+    )
+    .bind(query.longitude)
+    .bind(query.latitude)
+    .bind(radius_km)
+    .bind(min_power_kw)
+    .bind(query.connector_types.as_ref())
+    .bind(query.power_tiers.as_ref())
+    .bind(max_results)
+    .fetch_all(&data.db_pool)
+    .await;
+
+    match rows {
+        Ok(rows) => {
+            let mut stations = Vec::new();
+            for row in rows {
+                match row_to_station(&row) {
+                    Ok(station) => stations.push(station),
+                    Err(e) => {
+                        log::error!("Error mapping row to station: {}", e);
+                        continue;
+                    }
+                }
+            }
+            
+            let response = ApiResponse {
+                success: true,
+                data: stations.clone(),
+                count: stations.len(),
+            };
+            Ok(HttpResponse::Ok().json(response))
+        }
         Err(e) => {
-            log::error!("Database health check failed: {}", e);
-            Ok(HttpResponse::ServiceUnavailable().json(ApiResponse::<&str>::error(
-                "Database connection failed".to_string()
-            )))
+            log::error!("Database error: {}", e);
+            let error_response = ErrorResponse {
+                success: false,
+                error: "Internal server error".to_string(),
+            };
+            Ok(HttpResponse::InternalServerError().json(error_response))
         }
     }
 }
 
-// Database connection setup
-async fn create_db_pool() -> Result<DbPool, sqlx::Error> {
-    let database_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgres://postgres:password@localhost:5432/ev_db".to_string());
+// Health check endpoint
+#[utoipa::path(
+    responses(
+        (status = 200, description = "Service is healthy", body = HealthResponse)
+    ),
+    tag = "System"
+)]
+#[get("/health")]
+async fn health_check() -> Result<HttpResponse> {
+    let response = HealthResponse {
+        status: "ok".to_string(),
+        service: "charging-stations-api".to_string(),
+        version: "1.0.0".to_string(),
+        timestamp: chrono::Utc::now().to_rfc3339(),
+    };
+    Ok(HttpResponse::Ok().json(response))
+}
 
-    PgPoolOptions::new()
-        .max_connections(20)
-        .connect(&database_url)
-        .await
+// Root endpoint with API information
+#[utoipa::path(
+    responses(
+        (status = 200, description = "API information", body = ApiInfo)
+    ),
+    tag = "System"
+)]
+#[get("/")]
+async fn index() -> Result<HttpResponse> {
+    let mut endpoints = std::collections::HashMap::new();
+    endpoints.insert(
+        "find_nearby_stations".to_string(),
+        "/api/stations/nearby?longitude=10.0&latitude=36.0&radius_km=5&max_results=10".to_string(),
+    );
+    endpoints.insert(
+        "find_nearby_stations_detail".to_string(),
+        "/api/stations/nearby/detail?longitude=10.0&latitude=36.0&radius_km=5&min_power_kw=50&max_results=10".to_string(),
+    );
+    endpoints.insert("health_check".to_string(), "/health".to_string());
+    endpoints.insert("swagger_ui".to_string(), "/swagger".to_string());
+
+    let response = ApiInfo {
+        name: "Charging Stations API".to_string(),
+        version: "1.0.0".to_string(),
+        description: "REST API for finding electric vehicle charging stations".to_string(),
+        endpoints,
+    };
+    
+    Ok(HttpResponse::Ok().json(response))
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     // Initialize logger
-    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+    env_logger::init();
+    
+    // Load environment variables
+    dotenvy::dotenv().ok();
+    
+    let database_url = env::var("DATABASE_URL")
+        .expect("DATABASE_URL must be set in .env file");
 
-    // Create database pool
-    let pool = create_db_pool().await.map_err(|e| {
-        eprintln!("Failed to create database pool: {}", e);
-        std::io::Error::new(std::io::ErrorKind::Other, "Database connection failed")
-    })?;
+    // Create database connection pool
+    let db_pool = PgPoolOptions::new()
+        .max_connections(5)
+        .connect(&database_url)
+        .await
+        .expect("Failed to create database pool");
 
-    println!("🚀 Charging Stations API server starting on http://0.0.0.0:8080");
-    println!("📊 Database connected successfully");
+    // Test database connection
+    match sqlx::query("SELECT 1").execute(&db_pool).await {
+        Ok(_) => println!("✅ Database connection successful"),
+        Err(e) => {
+            eprintln!("❌ Database connection failed: {}", e);
+            std::process::exit(1);
+        }
+    }
+
+    let host = env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
+    let port = env::var("PORT").unwrap_or_else(|_| "8080".to_string());
+    let bind_address = format!("{}:{}", host, port);
+
+    println!("🚀 Starting server on http://{}", bind_address);
+    println!("📚 Swagger UI available at http://{}/swagger", bind_address);
+    println!("🏥 Health check available at http://{}/health", bind_address);
 
     HttpServer::new(move || {
-        let cors = Cors::default()
-            .allow_any_origin()
-            .allow_any_method()
-            .allow_any_header()
-            .max_age(3600);
-
         App::new()
-            .app_data(web::Data::new(pool.clone()))
-            .wrap(cors)
-            .service(get_nearby_stations)
-            .service(get_nearby_stations_detailed)
-            .service(get_station_details)
-            .service(get_connector_types)
-            .service(get_system_stats)
+            .app_data(web::Data::new(AppState {
+                db_pool: db_pool.clone(),
+            }))
+            .service(
+                SwaggerUi::new("/swagger/{_:.*}")
+                    .url("/api-docs/openapi.json", ApiDoc::openapi()),
+            )
+            .service(index)
             .service(health_check)
+            .service(
+                web::scope("/api/stations")
+                    .service(find_nearby_stations)
+                    .service(find_nearby_stations_detail)
+            )
     })
-    .bind("0.0.0.0:8080")?
+    .bind(&bind_address)?
     .run()
     .await
 }
