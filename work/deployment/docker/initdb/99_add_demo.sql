@@ -132,3 +132,8 @@ INSERT INTO connectors (
 (8, 2, 22.0, 'available', 400, 32, 'ENR001', 'ABB', 'AC22', '2023-08-01', '2023-10-12', 'system', 'system', NOW(), NOW()),
 (8, 4, 350.0, 'occupied', 800, 500, 'ENR002', 'Siemens', 'DC350', '2023-08-01', '2023-10-12', 'system', 'system', NOW(), NOW())
 ;
+
+
+update stations set status = 'verified';
+
+CALL force_refresh_charging_station_views();

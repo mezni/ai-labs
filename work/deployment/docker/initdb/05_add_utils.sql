@@ -1,10 +1,10 @@
--- Drop all existing functions
+-- Drop and recreate optimized functions using materialized views
 DROP FUNCTION IF EXISTS find_nearby_stations;
 DROP FUNCTION IF EXISTS find_nearby_stations_detail;
 DROP FUNCTION IF EXISTS get_station_details;
 
 -- ==========================================
--- Function: Find nearby stations (using CTE)
+-- Function: Find nearby stations (optimized using MV)
 CREATE OR REPLACE FUNCTION find_nearby_stations(
     p_longitude FLOAT,
     p_latitude FLOAT,
@@ -28,46 +28,24 @@ CREATE OR REPLACE FUNCTION find_nearby_stations(
 ) AS $$
 BEGIN
     RETURN QUERY
-    WITH station_stats AS (
-        SELECT 
-            s.station_id,
-            s.name,
-            s.address,
-            s.city,
-            s.location,
-            COALESCE(MAX(c.power_level_kw), 0) as max_power,
-            COUNT(CASE WHEN c.status = 'available' THEN 1 END) as available_count,
-            COUNT(c.connector_id) as total_count,
-            ARRAY_AGG(DISTINCT ct.name) FILTER (WHERE c.status = 'available') as connector_names
-        FROM stations s
-        LEFT JOIN connectors c ON s.station_id = c.station_id
-        LEFT JOIN connector_types ct ON c.connector_type_id = ct.connector_type_id
-        WHERE s.location IS NOT NULL
-        GROUP BY s.station_id, s.name, s.address, s.city, s.location
-    )
     SELECT 
-        ss.station_id,
-        ss.name::TEXT,
-        ss.address::TEXT,
-        COALESCE(ss.city, '')::TEXT,
-        ST_Distance(ss.location, ST_SetSRID(ST_MakePoint(p_longitude, p_latitude), 4326)) / 1000 as distance_km,
-        ss.max_power::FLOAT as max_power_kw,
-        COALESCE(ss.available_count, 0)::INTEGER as available_connectors,
-        COALESCE(ss.total_count, 0)::INTEGER as total_connectors,
-        COALESCE(ss.connector_names, ARRAY[]::TEXT[])::TEXT[] as connector_types,
-        CASE 
-            WHEN ss.max_power >= 150 THEN 'ultra_fast'::TEXT
-            WHEN ss.max_power >= 50 THEN 'fast'::TEXT
-            WHEN ss.max_power >= 22 THEN 'medium'::TEXT
-            ELSE 'slow'::TEXT
-        END as power_tier,
+        g.station_id,
+        g.name::TEXT,
+        g.address::TEXT,
+        COALESCE(g.city, '')::TEXT,
+        ST_Distance(g.location, ST_SetSRID(ST_MakePoint(p_longitude, p_latitude), 4326)) / 1000 as distance_km,
+        COALESCE(g.max_power_kw, 0)::FLOAT as max_power_kw,
+        COALESCE(g.total_available_connectors, 0)::INTEGER as available_connectors,
+        COALESCE(g.total_connectors, 0)::INTEGER as total_connectors,
+        COALESCE(g.available_connector_names, ARRAY[]::TEXT[])::TEXT[] as connector_types,
+        COALESCE(g.power_tier, 'unknown')::TEXT as power_tier,
         TRUE::BOOLEAN as is_operational,
-        ST_Y(ss.location::geometry)::FLOAT as latitude,
-        ST_X(ss.location::geometry)::FLOAT as longitude
-    FROM station_stats ss
+        g.latitude::FLOAT,
+        g.longitude::FLOAT
+    FROM mv_charging_stations_geo g
     WHERE 
-        ST_DWithin(ss.location, ST_SetSRID(ST_MakePoint(p_longitude, p_latitude), 4326), p_radius_km * 1000)
-        AND ss.available_count > 0
+        ST_DWithin(g.location, ST_SetSRID(ST_MakePoint(p_longitude, p_latitude), 4326), p_radius_km * 1000)
+        AND g.has_available_connectors = true
     ORDER BY distance_km
     LIMIT p_limit
     OFFSET p_offset;
@@ -75,7 +53,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ==========================================
--- Function: Find nearby stations with detailed filtering
+-- Function: Find nearby stations with detailed filtering (optimized)
+-- Alternative: More robust version
 CREATE OR REPLACE FUNCTION find_nearby_stations_detail(
     p_longitude FLOAT,
     p_latitude FLOAT,
@@ -102,50 +81,34 @@ CREATE OR REPLACE FUNCTION find_nearby_stations_detail(
 ) AS $$
 BEGIN
     RETURN QUERY
-    WITH station_stats AS (
-        SELECT 
-            s.station_id,
-            s.name,
-            s.address,
-            s.city,
-            s.location,
-            COALESCE(MAX(c.power_level_kw), 0) as max_power,
-            COUNT(CASE WHEN c.status = 'available' THEN 1 END) as available_count,
-            COUNT(c.connector_id) as total_count,
-            ARRAY_AGG(DISTINCT ct.name) FILTER (WHERE c.status = 'available') as connector_names,
-            CASE 
-                WHEN MAX(c.power_level_kw) >= 150 THEN 'ultra_fast'::TEXT
-                WHEN MAX(c.power_level_kw) >= 50 THEN 'fast'::TEXT
-                WHEN MAX(c.power_level_kw) >= 22 THEN 'medium'::TEXT
-                ELSE 'slow'::TEXT
-            END as power_tier_calc
-        FROM stations s
-        LEFT JOIN connectors c ON s.station_id = c.station_id
-        LEFT JOIN connector_types ct ON c.connector_type_id = ct.connector_type_id
-        WHERE s.location IS NOT NULL
-        GROUP BY s.station_id, s.name, s.address, s.city, s.location
-    )
     SELECT 
-        ss.station_id,
-        ss.name::TEXT,
-        ss.address::TEXT,
-        COALESCE(ss.city, '')::TEXT,
-        ST_Distance(ss.location, ST_SetSRID(ST_MakePoint(p_longitude, p_latitude), 4326)) / 1000 as distance_km,
-        ss.max_power::FLOAT as max_power_kw,
-        COALESCE(ss.available_count, 0)::INTEGER as available_connectors,
-        COALESCE(ss.total_count, 0)::INTEGER as total_connectors,
-        COALESCE(ss.connector_names, ARRAY[]::TEXT[])::TEXT[] as connector_types,
-        COALESCE(ss.power_tier_calc, 'unknown'::TEXT) as power_tier,
+        g.station_id,
+        g.name::TEXT,
+        g.address::TEXT,
+        COALESCE(g.city, '')::TEXT,
+        ST_Distance(g.location, ST_SetSRID(ST_MakePoint(p_longitude, p_latitude), 4326)) / 1000 as distance_km,
+        COALESCE(g.max_power_kw, 0)::FLOAT as max_power_kw,
+        COALESCE(g.total_available_connectors, 0)::INTEGER as available_connectors,
+        COALESCE(g.total_connectors, 0)::INTEGER as total_connectors,
+        COALESCE(g.available_connector_names, ARRAY[]::TEXT[])::TEXT[] as connector_types,
+        COALESCE(g.power_tier, 'unknown')::TEXT as power_tier,
         TRUE::BOOLEAN as is_operational,
-        ST_Y(ss.location::geometry)::FLOAT as latitude,
-        ST_X(ss.location::geometry)::FLOAT as longitude
-    FROM station_stats ss
+        g.latitude::FLOAT,
+        g.longitude::FLOAT
+    FROM mv_charging_stations_geo g
     WHERE 
-        ST_DWithin(ss.location, ST_SetSRID(ST_MakePoint(p_longitude, p_latitude), 4326), p_radius_km * 1000)
-        AND ss.available_count > 0
-        AND (p_min_power_kw IS NULL OR ss.max_power >= p_min_power_kw)
-        AND (p_connector_types IS NULL OR ss.connector_names && p_connector_types)
-        AND (p_power_tiers IS NULL OR ss.power_tier_calc = ANY(p_power_tiers))
+        ST_DWithin(g.location, ST_SetSRID(ST_MakePoint(p_longitude, p_latitude), 4326), p_radius_km * 1000)
+        AND g.has_available_connectors = true
+        AND (p_min_power_kw IS NULL OR g.max_power_kw >= p_min_power_kw)
+        AND (
+            p_connector_types IS NULL 
+            OR EXISTS (
+                SELECT 1 
+                FROM unnest(g.available_connector_names::TEXT[]) AS station_connector
+                WHERE station_connector = ANY(p_connector_types)
+            )
+        )
+        AND (p_power_tiers IS NULL OR g.power_tier = ANY(p_power_tiers))
     ORDER BY distance_km
     LIMIT p_limit
     OFFSET p_offset;
@@ -153,7 +116,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ==========================================
--- Function: Get station details by ID
+-- Function: Get station details by ID (optimized)
 CREATE OR REPLACE FUNCTION get_station_details(p_station_id INTEGER)
 RETURNS TABLE(
     station_id INTEGER,
@@ -177,66 +140,26 @@ RETURNS TABLE(
 ) AS $$
 BEGIN
     RETURN QUERY
-    WITH station_stats AS (
-        SELECT 
-            s.station_id,
-            s.name,
-            s.address,
-            s.city,
-            s.state,
-            s.country,
-            s.postal_code,
-            s.location,
-            s.tags,
-            s.network_id,
-            COALESCE(MAX(c.power_level_kw), 0) as max_power,
-            COUNT(CASE WHEN c.status = 'available' THEN 1 END) as available_count,
-            COUNT(c.connector_id) as total_count,
-            ARRAY_AGG(DISTINCT ct.name) FILTER (WHERE c.status = 'available') as connector_names,
-            jsonb_agg(
-                jsonb_build_object(
-                    'connector_id', c.connector_id,
-                    'type_id', c.connector_type_id,
-                    'type_name', ct.name,
-                    'status', c.status,
-                    'power_level_kw', c.power_level_kw,
-                    'max_voltage', c.max_voltage,
-                    'max_amperage', c.max_amperage,
-                    'manufacturer', c.manufacturer,
-                    'model', c.model
-                ) ORDER BY c.power_level_kw DESC NULLS LAST
-            ) as connectors_json
-        FROM stations s
-        LEFT JOIN connectors c ON s.station_id = c.station_id
-        LEFT JOIN connector_types ct ON c.connector_type_id = ct.connector_type_id
-        WHERE s.station_id = p_station_id
-        GROUP BY s.station_id, s.name, s.address, s.city, s.state, s.country, s.postal_code, s.location, s.tags, s.network_id
-    )
     SELECT 
-        ss.station_id,
-        ss.name::TEXT,
-        ss.address::TEXT,
-        COALESCE(ss.city, '')::TEXT,
-        COALESCE(ss.state, '')::TEXT,
-        COALESCE(ss.country, '')::TEXT,
-        COALESCE(ss.postal_code, '')::TEXT,
-        ST_Y(ss.location::geometry)::FLOAT as latitude,
-        ST_X(ss.location::geometry)::FLOAT as longitude,
-        ss.max_power::FLOAT as max_power_kw,
-        COALESCE(ss.available_count, 0)::INTEGER as available_connectors,
-        COALESCE(ss.total_count, 0)::INTEGER as total_connectors,
-        COALESCE(ss.connector_names, ARRAY[]::TEXT[])::TEXT[] as connector_types,
-        CASE 
-            WHEN ss.max_power >= 150 THEN 'ultra_fast'::TEXT
-            WHEN ss.max_power >= 50 THEN 'fast'::TEXT
-            WHEN ss.max_power >= 22 THEN 'medium'::TEXT
-            ELSE 'slow'::TEXT
-        END as power_tier,
-        COALESCE(ss.connectors_json, '[]'::JSONB) as connectors,
-        COALESCE(hstore_to_json(ss.tags), '{}'::JSONB) as tags,
-        COALESCE(n.name, 'Unknown')::TEXT as network_name,
+        g.station_id,
+        g.name::TEXT,
+        g.address::TEXT,
+        COALESCE(g.city, '')::TEXT,
+        COALESCE(g.state, '')::TEXT,
+        COALESCE(g.country, '')::TEXT,
+        COALESCE(g.postal_code, '')::TEXT,
+        g.latitude::FLOAT,
+        g.longitude::FLOAT,
+        COALESCE(g.max_power_kw, 0)::FLOAT as max_power_kw,
+        COALESCE(g.total_available_connectors, 0)::INTEGER as available_connectors,
+        COALESCE(g.total_connectors, 0)::INTEGER as total_connectors,
+        COALESCE(g.available_connector_names, ARRAY[]::TEXT[])::TEXT[] as connector_types,
+        COALESCE(g.power_tier, 'unknown')::TEXT as power_tier,
+        COALESCE(g.connectors, '[]'::JSONB) as connectors,
+        COALESCE(hstore_to_json(g.tags), '{}'::JSONB) as tags,
+        COALESCE(g.network_name, 'Unknown')::TEXT as network_name,
         TRUE::BOOLEAN as is_operational
-    FROM station_stats ss
-    LEFT JOIN networks n ON ss.network_id = n.network_id;
+    FROM mv_charging_stations_geo g
+    WHERE g.station_id = p_station_id;
 END;
 $$ LANGUAGE plpgsql;
