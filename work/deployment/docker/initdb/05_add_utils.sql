@@ -1,187 +1,242 @@
--- ==========================================
--- Refresh function for materialized views
-CREATE OR REPLACE FUNCTION refresh_charging_station_views()
-RETURNS VOID AS $$
-BEGIN
-    RAISE NOTICE 'Refreshing materialized views...';
-    
-    -- Refresh materialized views
-    BEGIN
-        REFRESH MATERIALIZED VIEW mv_charging_stations_geo;
-        REFRESH MATERIALIZED VIEW mv_charging_stations_summary;
-        REFRESH MATERIALIZED VIEW mv_connector_type_stats;
-        RAISE NOTICE 'Materialized views refreshed successfully';
-    EXCEPTION WHEN OTHERS THEN
-        RAISE NOTICE 'Error refreshing materialized views: %', SQLERRM;
-    END;
-END;
-$$ LANGUAGE plpgsql;
+-- Drop all existing functions
+DROP FUNCTION IF EXISTS find_nearby_stations;
+DROP FUNCTION IF EXISTS find_nearby_stations_detail;
+DROP FUNCTION IF EXISTS get_station_details;
 
 -- ==========================================
--- Immediate refresh trigger function
-CREATE OR REPLACE FUNCTION trg_refresh_mv_immediate()
-RETURNS TRIGGER AS $$
-BEGIN
-    -- Use a deferred approach to avoid transaction conflicts
-    PERFORM pg_advisory_xact_lock(12345); -- Use advisory lock to prevent concurrent refreshes
-    
-    RAISE NOTICE 'Auto-refreshing materialized views due to changes in %', TG_TABLE_NAME;
-    
-    -- Refresh materialized views
-    PERFORM refresh_charging_station_views();
-    
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
--- ==========================================
--- Drop existing triggers if any
-DROP TRIGGER IF EXISTS trg_refresh_mv_after_stations ON stations;
-DROP TRIGGER IF EXISTS trg_refresh_mv_after_connectors ON connectors;
-DROP TRIGGER IF EXISTS trg_refresh_mv_after_connector_types ON connector_types;
-
--- ==========================================
--- Create statement-level triggers for automatic refresh
-CREATE TRIGGER trg_refresh_mv_after_stations
-    AFTER INSERT OR UPDATE OR DELETE ON stations
-    FOR EACH STATEMENT
-    EXECUTE FUNCTION trg_refresh_mv_immediate();
-
-CREATE TRIGGER trg_refresh_mv_after_connectors
-    AFTER INSERT OR UPDATE OR DELETE ON connectors
-    FOR EACH STATEMENT
-    EXECUTE FUNCTION trg_refresh_mv_immediate();
-
-CREATE TRIGGER trg_refresh_mv_after_connector_types
-    AFTER INSERT OR UPDATE OR DELETE ON connector_types
-    FOR EACH STATEMENT
-    EXECUTE FUNCTION trg_refresh_mv_immediate();
-
--- ==========================================
--- Utility Functions
-
--- Function to manually refresh all views
-CREATE OR REPLACE FUNCTION refresh_all_materialized_views()
-RETURNS TEXT AS $$
-BEGIN
-    PERFORM refresh_charging_station_views();
-    RETURN 'All materialized views refreshed successfully at ' || NOW();
-END;
-$$ LANGUAGE plpgsql;
-
--- Function to find stations within radius
-CREATE OR REPLACE FUNCTION find_stations_nearby(
+-- Function: Find nearby stations (using CTE)
+CREATE OR REPLACE FUNCTION find_nearby_stations(
     p_longitude FLOAT,
-    p_latitude FLOAT, 
+    p_latitude FLOAT,
     p_radius_km FLOAT DEFAULT 10,
-    p_min_power_kw FLOAT DEFAULT 0,
-    p_connector_types TEXT[] DEFAULT NULL
+    p_limit INTEGER DEFAULT 50,
+    p_offset INTEGER DEFAULT 0
 ) RETURNS TABLE(
-    station_id BIGINT,
-    name VARCHAR,
+    station_id INTEGER,
+    name TEXT,
     address TEXT,
+    city TEXT,
     distance_km FLOAT,
-    max_power_kw DECIMAL,
+    max_power_kw FLOAT,
     available_connectors INTEGER,
-    connector_types TEXT[]
+    total_connectors INTEGER,
+    connector_types TEXT[],
+    power_tier TEXT,
+    is_operational BOOLEAN,
+    latitude FLOAT,
+    longitude FLOAT
 ) AS $$
 BEGIN
     RETURN QUERY
+    WITH station_stats AS (
+        SELECT 
+            s.station_id,
+            s.name,
+            s.address,
+            s.city,
+            s.location,
+            COALESCE(MAX(c.power_level_kw), 0) as max_power,
+            COUNT(CASE WHEN c.status = 'available' THEN 1 END) as available_count,
+            COUNT(c.connector_id) as total_count,
+            ARRAY_AGG(DISTINCT ct.name) FILTER (WHERE c.status = 'available') as connector_names
+        FROM stations s
+        LEFT JOIN connectors c ON s.station_id = c.station_id
+        LEFT JOIN connector_types ct ON c.connector_type_id = ct.connector_type_id
+        WHERE s.location IS NOT NULL
+        GROUP BY s.station_id, s.name, s.address, s.city, s.location
+    )
     SELECT 
-        g.station_id,
-        g.name,
-        g.address,
-        ST_Distance(g.location, ST_SetSRID(ST_MakePoint(p_longitude, p_latitude), 4326)) / 1000 as distance_km,
-        g.max_power_kw,
-        g.total_available_connectors as available_connectors,
-        g.available_connector_names as connector_types
-    FROM mv_charging_stations_geo g
+        ss.station_id,
+        ss.name::TEXT,
+        ss.address::TEXT,
+        COALESCE(ss.city, '')::TEXT,
+        ST_Distance(ss.location, ST_SetSRID(ST_MakePoint(p_longitude, p_latitude), 4326)) / 1000 as distance_km,
+        ss.max_power::FLOAT as max_power_kw,
+        COALESCE(ss.available_count, 0)::INTEGER as available_connectors,
+        COALESCE(ss.total_count, 0)::INTEGER as total_connectors,
+        COALESCE(ss.connector_names, ARRAY[]::TEXT[])::TEXT[] as connector_types,
+        CASE 
+            WHEN ss.max_power >= 150 THEN 'ultra_fast'::TEXT
+            WHEN ss.max_power >= 50 THEN 'fast'::TEXT
+            WHEN ss.max_power >= 22 THEN 'medium'::TEXT
+            ELSE 'slow'::TEXT
+        END as power_tier,
+        TRUE::BOOLEAN as is_operational,
+        ST_Y(ss.location::geometry)::FLOAT as latitude,
+        ST_X(ss.location::geometry)::FLOAT as longitude
+    FROM station_stats ss
     WHERE 
-        ST_DWithin(g.location, ST_SetSRID(ST_MakePoint(p_longitude, p_latitude), 4326), p_radius_km * 1000)
-        AND g.max_power_kw >= p_min_power_kw
-        AND g.has_available_connectors = true
-        AND (p_connector_types IS NULL OR g.available_connector_names && p_connector_types)
-    ORDER BY distance_km;
-END;
-$$ LANGUAGE plpgsql;
-
--- Function to get station statistics
-CREATE OR REPLACE FUNCTION get_station_statistics()
-RETURNS TABLE(
-    total_stations BIGINT,
-    operational_stations BIGINT,
-    total_connectors BIGINT,
-    available_connectors BIGINT,
-    avg_power_kw DECIMAL,
-    max_power_kw DECIMAL
-) AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        COUNT(DISTINCT s.station_id) as total_stations,
-        COUNT(DISTINCT CASE WHEN s.is_operational = true THEN s.station_id END) as operational_stations,
-        COUNT(c.connector_id) as total_connectors,
-        COUNT(CASE WHEN c.status = 'available' THEN 1 END) as available_connectors,
-        AVG(c.power_level_kw) as avg_power_kw,
-        MAX(c.power_level_kw) as max_power_kw
-    FROM stations s
-    LEFT JOIN connectors c ON s.station_id = c.station_id
-    WHERE s.status = 'verified';
-END;
-$$ LANGUAGE plpgsql;
-
--- Function to check trigger status
-CREATE OR REPLACE FUNCTION check_mv_refresh_status()
-RETURNS TABLE(
-    trigger_name TEXT,
-    table_name TEXT,
-    is_enabled BOOLEAN
-) AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        tgname::TEXT as trigger_name,
-        relname::TEXT as table_name,
-        tgenabled = 'O' as is_enabled
-    FROM pg_trigger t
-    JOIN pg_class c ON t.tgrelid = c.oid
-    WHERE tgname LIKE 'trg_refresh_mv%'
-    ORDER BY relname;
-END;
-$$ LANGUAGE plpgsql;
-
--- Function to temporarily disable auto-refresh
-CREATE OR REPLACE FUNCTION disable_auto_refresh()
-RETURNS TEXT AS $$
-BEGIN
-    ALTER TABLE stations DISABLE TRIGGER trg_refresh_mv_after_stations;
-    ALTER TABLE connectors DISABLE TRIGGER trg_refresh_mv_after_connectors;
-    ALTER TABLE connector_types DISABLE TRIGGER trg_refresh_mv_after_connector_types;
-    RETURN 'Auto-refresh triggers disabled';
-END;
-$$ LANGUAGE plpgsql;
-
--- Function to re-enable auto-refresh
-CREATE OR REPLACE FUNCTION enable_auto_refresh()
-RETURNS TEXT AS $$
-BEGIN
-    ALTER TABLE stations ENABLE TRIGGER trg_refresh_mv_after_stations;
-    ALTER TABLE connectors ENABLE TRIGGER trg_refresh_mv_after_connectors;
-    ALTER TABLE connector_types ENABLE TRIGGER trg_refresh_mv_after_connector_types;
-    RETURN 'Auto-refresh triggers enabled';
+        ST_DWithin(ss.location, ST_SetSRID(ST_MakePoint(p_longitude, p_latitude), 4326), p_radius_km * 1000)
+        AND ss.available_count > 0
+    ORDER BY distance_km
+    LIMIT p_limit
+    OFFSET p_offset;
 END;
 $$ LANGUAGE plpgsql;
 
 -- ==========================================
--- Display trigger status
-DO $$
+-- Function: Find nearby stations with detailed filtering
+CREATE OR REPLACE FUNCTION find_nearby_stations_detail(
+    p_longitude FLOAT,
+    p_latitude FLOAT,
+    p_radius_km FLOAT DEFAULT 10,
+    p_min_power_kw FLOAT DEFAULT NULL,
+    p_connector_types TEXT[] DEFAULT NULL,
+    p_power_tiers TEXT[] DEFAULT NULL,
+    p_limit INTEGER DEFAULT 50,
+    p_offset INTEGER DEFAULT 0
+) RETURNS TABLE(
+    station_id INTEGER,
+    name TEXT,
+    address TEXT,
+    city TEXT,
+    distance_km FLOAT,
+    max_power_kw FLOAT,
+    available_connectors INTEGER,
+    total_connectors INTEGER,
+    connector_types TEXT[],
+    power_tier TEXT,
+    is_operational BOOLEAN,
+    latitude FLOAT,
+    longitude FLOAT
+) AS $$
 BEGIN
-    RAISE NOTICE 'Automatic materialized view refresh triggers installed:';
-    RAISE NOTICE '- Stations table: trg_refresh_mv_after_stations';
-    RAISE NOTICE '- Connectors table: trg_refresh_mv_after_connectors'; 
-    RAISE NOTICE '- Connector Types table: trg_refresh_mv_after_connector_types';
-    RAISE NOTICE '';
-    RAISE NOTICE 'Materialized views will now refresh automatically after data changes.';
-    RAISE NOTICE 'Use check_mv_refresh_status() to verify trigger status.';
-    RAISE NOTICE 'Use disable_auto_refresh() / enable_auto_refresh() for bulk operations.';
-END $$;
+    RETURN QUERY
+    WITH station_stats AS (
+        SELECT 
+            s.station_id,
+            s.name,
+            s.address,
+            s.city,
+            s.location,
+            COALESCE(MAX(c.power_level_kw), 0) as max_power,
+            COUNT(CASE WHEN c.status = 'available' THEN 1 END) as available_count,
+            COUNT(c.connector_id) as total_count,
+            ARRAY_AGG(DISTINCT ct.name) FILTER (WHERE c.status = 'available') as connector_names,
+            CASE 
+                WHEN MAX(c.power_level_kw) >= 150 THEN 'ultra_fast'::TEXT
+                WHEN MAX(c.power_level_kw) >= 50 THEN 'fast'::TEXT
+                WHEN MAX(c.power_level_kw) >= 22 THEN 'medium'::TEXT
+                ELSE 'slow'::TEXT
+            END as power_tier_calc
+        FROM stations s
+        LEFT JOIN connectors c ON s.station_id = c.station_id
+        LEFT JOIN connector_types ct ON c.connector_type_id = ct.connector_type_id
+        WHERE s.location IS NOT NULL
+        GROUP BY s.station_id, s.name, s.address, s.city, s.location
+    )
+    SELECT 
+        ss.station_id,
+        ss.name::TEXT,
+        ss.address::TEXT,
+        COALESCE(ss.city, '')::TEXT,
+        ST_Distance(ss.location, ST_SetSRID(ST_MakePoint(p_longitude, p_latitude), 4326)) / 1000 as distance_km,
+        ss.max_power::FLOAT as max_power_kw,
+        COALESCE(ss.available_count, 0)::INTEGER as available_connectors,
+        COALESCE(ss.total_count, 0)::INTEGER as total_connectors,
+        COALESCE(ss.connector_names, ARRAY[]::TEXT[])::TEXT[] as connector_types,
+        COALESCE(ss.power_tier_calc, 'unknown'::TEXT) as power_tier,
+        TRUE::BOOLEAN as is_operational,
+        ST_Y(ss.location::geometry)::FLOAT as latitude,
+        ST_X(ss.location::geometry)::FLOAT as longitude
+    FROM station_stats ss
+    WHERE 
+        ST_DWithin(ss.location, ST_SetSRID(ST_MakePoint(p_longitude, p_latitude), 4326), p_radius_km * 1000)
+        AND ss.available_count > 0
+        AND (p_min_power_kw IS NULL OR ss.max_power >= p_min_power_kw)
+        AND (p_connector_types IS NULL OR ss.connector_names && p_connector_types)
+        AND (p_power_tiers IS NULL OR ss.power_tier_calc = ANY(p_power_tiers))
+    ORDER BY distance_km
+    LIMIT p_limit
+    OFFSET p_offset;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ==========================================
+-- Function: Get station details by ID
+CREATE OR REPLACE FUNCTION get_station_details(p_station_id INTEGER)
+RETURNS TABLE(
+    station_id INTEGER,
+    name TEXT,
+    address TEXT,
+    city TEXT,
+    state TEXT,
+    country TEXT,
+    postal_code TEXT,
+    latitude FLOAT,
+    longitude FLOAT,
+    max_power_kw FLOAT,
+    available_connectors INTEGER,
+    total_connectors INTEGER,
+    connector_types TEXT[],
+    power_tier TEXT,
+    connectors JSONB,
+    tags JSONB,
+    network_name TEXT,
+    is_operational BOOLEAN
+) AS $$
+BEGIN
+    RETURN QUERY
+    WITH station_stats AS (
+        SELECT 
+            s.station_id,
+            s.name,
+            s.address,
+            s.city,
+            s.state,
+            s.country,
+            s.postal_code,
+            s.location,
+            s.tags,
+            s.network_id,
+            COALESCE(MAX(c.power_level_kw), 0) as max_power,
+            COUNT(CASE WHEN c.status = 'available' THEN 1 END) as available_count,
+            COUNT(c.connector_id) as total_count,
+            ARRAY_AGG(DISTINCT ct.name) FILTER (WHERE c.status = 'available') as connector_names,
+            jsonb_agg(
+                jsonb_build_object(
+                    'connector_id', c.connector_id,
+                    'type_id', c.connector_type_id,
+                    'type_name', ct.name,
+                    'status', c.status,
+                    'power_level_kw', c.power_level_kw,
+                    'max_voltage', c.max_voltage,
+                    'max_amperage', c.max_amperage,
+                    'manufacturer', c.manufacturer,
+                    'model', c.model
+                ) ORDER BY c.power_level_kw DESC NULLS LAST
+            ) as connectors_json
+        FROM stations s
+        LEFT JOIN connectors c ON s.station_id = c.station_id
+        LEFT JOIN connector_types ct ON c.connector_type_id = ct.connector_type_id
+        WHERE s.station_id = p_station_id
+        GROUP BY s.station_id, s.name, s.address, s.city, s.state, s.country, s.postal_code, s.location, s.tags, s.network_id
+    )
+    SELECT 
+        ss.station_id,
+        ss.name::TEXT,
+        ss.address::TEXT,
+        COALESCE(ss.city, '')::TEXT,
+        COALESCE(ss.state, '')::TEXT,
+        COALESCE(ss.country, '')::TEXT,
+        COALESCE(ss.postal_code, '')::TEXT,
+        ST_Y(ss.location::geometry)::FLOAT as latitude,
+        ST_X(ss.location::geometry)::FLOAT as longitude,
+        ss.max_power::FLOAT as max_power_kw,
+        COALESCE(ss.available_count, 0)::INTEGER as available_connectors,
+        COALESCE(ss.total_count, 0)::INTEGER as total_connectors,
+        COALESCE(ss.connector_names, ARRAY[]::TEXT[])::TEXT[] as connector_types,
+        CASE 
+            WHEN ss.max_power >= 150 THEN 'ultra_fast'::TEXT
+            WHEN ss.max_power >= 50 THEN 'fast'::TEXT
+            WHEN ss.max_power >= 22 THEN 'medium'::TEXT
+            ELSE 'slow'::TEXT
+        END as power_tier,
+        COALESCE(ss.connectors_json, '[]'::JSONB) as connectors,
+        COALESCE(hstore_to_json(ss.tags), '{}'::JSONB) as tags,
+        COALESCE(n.name, 'Unknown')::TEXT as network_name,
+        TRUE::BOOLEAN as is_operational
+    FROM station_stats ss
+    LEFT JOIN networks n ON ss.network_id = n.network_id;
+END;
+$$ LANGUAGE plpgsql;
