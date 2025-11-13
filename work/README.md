@@ -32,14 +32,46 @@ This project provides APIs for:
 | **NATS (optional)** | Lightweight event bus for inter-service communication (e.g., `station.created`, `station.updated`). |
 
 
-## 🧭 System Overview
-''' mermaid
-    flowchart TB
-        %% === Public Zone ===
-        subgraph Clients["🌐 Public Zone"]
-            Client["Mobile / Web Client"]
-            OperatorUI["Operator UI"]
-            AdminUI["Admin UI"]
-        end
+## 🏗️ Architecture
+
+### Logical Zones
+
+- **Public Zone** — Clients (mobile/web) interact with the API Gateway via HTTPS.
+- **Gateway Zone** — API Gateway (Tyk / Envoy / Traefik) for routing, JWT validation, and rate-limiting.
+- **Security Zone** — Auth-Service and Keycloak handle authentication, authorization, and user management.
+- **Internal Zone** — Business microservices (Locator, Configurator) operate on shared PostgreSQL.
+- **Infra Zone** (Optional) — NATS for events, Prometheus/Grafana for metrics, Loki/ELK for logs.
+
+### Architecture Diagram
+![image description](docs/images/architecture.svg)
+
+
+### ⚙️ Technology Stack
+| Layer                | Technology                                       |
+| -------------------- | ------------------------------------------------ |
+| **Language**         | Rust (Actix-Web)                                 |
+| **Authentication**   | Keycloak (OpenID Connect / OAuth2)               |
+| **API Gateway**      | Tyk                                              |
+| **Database**         | PostgreSQL (with PostGIS for geospatial queries) |
+| **Messaging**        | NATS (Pub/Sub) (future version)                  |
+| **Monitoring**       | Prometheus, Grafana, OpenTelemetry   (future version) |
+| **Containerization** | Docker + Docker Compose / Kubernetes (future version)             |
+| **Configuration**    | `.env` or `config/*.toml` per environment        |
+
+
+### 📘 Documentation
+- [ADR Records](docs/adr.md)
+- [DB design](docs/erd.md)
+- [composants](docs/composants.md)
+- [OpenAPI Specs](docs/api.md)
+
+
+### 🧑‍💻 Authors
+
+S. ZOUARI — Product Owner
+📧 szouari@gmail.com
+
+M. MEZNI — Architect & Developer
+📧 mamezni@gmail.com
 
         
