@@ -1,165 +1,198 @@
--- Drop and recreate optimized functions using materialized views
-DROP FUNCTION IF EXISTS find_nearby_stations;
 DROP FUNCTION IF EXISTS find_nearby_stations_detail;
-DROP FUNCTION IF EXISTS get_station_details;
 
--- ==========================================
--- Function: Find nearby stations (optimized using MV)
-CREATE OR REPLACE FUNCTION find_nearby_stations(
-    p_longitude FLOAT,
-    p_latitude FLOAT,
-    p_radius_km FLOAT DEFAULT 10,
-    p_limit INTEGER DEFAULT 50,
-    p_offset INTEGER DEFAULT 0
-) RETURNS TABLE(
-    station_id INTEGER,
-    name TEXT,
-    address TEXT,
-    city TEXT,
-    distance_km FLOAT,
-    max_power_kw FLOAT,
-    available_connectors INTEGER,
-    total_connectors INTEGER,
-    connector_types TEXT[],
-    power_tier TEXT,
-    is_operational BOOLEAN,
-    latitude FLOAT,
-    longitude FLOAT
-) AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        g.station_id,
-        g.name::TEXT,
-        g.address::TEXT,
-        COALESCE(g.city, '')::TEXT,
-        ST_Distance(g.location, ST_SetSRID(ST_MakePoint(p_longitude, p_latitude), 4326)) / 1000 as distance_km,
-        COALESCE(g.max_power_kw, 0)::FLOAT as max_power_kw,
-        COALESCE(g.total_available_connectors, 0)::INTEGER as available_connectors,
-        COALESCE(g.total_connectors, 0)::INTEGER as total_connectors,
-        COALESCE(g.available_connector_names, ARRAY[]::TEXT[])::TEXT[] as connector_types,
-        COALESCE(g.power_tier, 'unknown')::TEXT as power_tier,
-        TRUE::BOOLEAN as is_operational,
-        g.latitude::FLOAT,
-        g.longitude::FLOAT
-    FROM mv_charging_stations_geo g
-    WHERE 
-        ST_DWithin(g.location, ST_SetSRID(ST_MakePoint(p_longitude, p_latitude), 4326), p_radius_km * 1000)
-        AND g.has_available_connectors = true
-    ORDER BY distance_km
-    LIMIT p_limit
-    OFFSET p_offset;
-END;
-$$ LANGUAGE plpgsql;
-
--- ==========================================
--- Function: Find nearby stations with detailed filtering (optimized)
--- Alternative: More robust version
 CREATE OR REPLACE FUNCTION find_nearby_stations_detail(
-    p_longitude FLOAT,
-    p_latitude FLOAT,
-    p_radius_km FLOAT DEFAULT 10,
-    p_min_power_kw FLOAT DEFAULT NULL,
+    p_longitude double precision,
+    p_latitude double precision,
+    p_radius_km double precision DEFAULT 10,
+    p_min_power_kw double precision DEFAULT NULL,
     p_connector_types TEXT[] DEFAULT NULL,
     p_power_tiers TEXT[] DEFAULT NULL,
     p_limit INTEGER DEFAULT 50,
     p_offset INTEGER DEFAULT 0
 ) RETURNS TABLE(
-    station_id INTEGER,
-    name TEXT,
-    address TEXT,
-    city TEXT,
-    distance_km FLOAT,
-    max_power_kw FLOAT,
-    available_connectors INTEGER,
-    total_connectors INTEGER,
-    connector_types TEXT[],
-    power_tier TEXT,
-    is_operational BOOLEAN,
-    latitude FLOAT,
-    longitude FLOAT
+    station_id integer,
+    network_id integer,
+    network_name varchar,
+    network_type varchar,
+    contact_email varchar,
+    phone_number varchar,
+    network_address text,
+    station_name varchar,
+    station_address text,
+    city varchar,
+    state varchar,
+    country varchar,
+    postal_code varchar,
+    longitude double precision,
+    latitude double precision,
+    tags text[],
+    station_status varchar,
+    is_operational boolean,
+    has_available_connectors boolean,
+    total_connectors integer,
+    total_available_connectors integer,
+    total_power_capacity_kw double precision,
+    available_power_capacity_kw double precision,
+    available_connector_names text[],
+    connectors jsonb,
+    network jsonb,
+    opening_hours text,
+    capacity integer,
+    fee text,
+    parking_fee text,
+    access text
 ) AS $$
+DECLARE
+    v_radius_meters double precision;
 BEGIN
+    v_radius_meters := p_radius_km * 1000;
+    
     RETURN QUERY
     SELECT 
-        g.station_id,
-        g.name::TEXT,
-        g.address::TEXT,
-        COALESCE(g.city, '')::TEXT,
-        ST_Distance(g.location, ST_SetSRID(ST_MakePoint(p_longitude, p_latitude), 4326)) / 1000 as distance_km,
-        COALESCE(g.max_power_kw, 0)::FLOAT as max_power_kw,
-        COALESCE(g.total_available_connectors, 0)::INTEGER as available_connectors,
-        COALESCE(g.total_connectors, 0)::INTEGER as total_connectors,
-        COALESCE(g.available_connector_names, ARRAY[]::TEXT[])::TEXT[] as connector_types,
-        COALESCE(g.power_tier, 'unknown')::TEXT as power_tier,
-        TRUE::BOOLEAN as is_operational,
-        g.latitude::FLOAT,
-        g.longitude::FLOAT
-    FROM mv_charging_stations_geo g
+        s.station_id::integer,
+        s.network_id::integer,
+        s.network_name::varchar,
+        s.network_type::varchar,
+        s.contact_email::varchar,
+        s.phone_number::varchar,
+        s.network_address::text,
+        s.station_name::varchar,
+        s.station_address::text,
+        s.city::varchar,
+        s.state::varchar,
+        s.country::varchar,
+        s.postal_code::varchar,
+        s.longitude::double precision,
+        s.latitude::double precision,
+        s.tags::text[],
+        s.station_status::varchar,
+        s.is_operational::boolean,
+        s.has_available_connectors::boolean,
+        s.total_connectors::integer,
+        s.total_available_connectors::integer,
+        s.total_power_capacity_kw::double precision,
+        s.available_power_capacity_kw::double precision,
+        s.available_connector_names::text[],
+        s.connectors::jsonb,
+        s.network::jsonb,
+        s.opening_hours::text,
+        s.capacity::integer,
+        s.fee::text,
+        s.parking_fee::text,
+        s.access::text
+    FROM mv_charging_stations s
     WHERE 
-        ST_DWithin(g.location, ST_SetSRID(ST_MakePoint(p_longitude, p_latitude), 4326), p_radius_km * 1000)
-        AND g.has_available_connectors = true
-        AND (p_min_power_kw IS NULL OR g.max_power_kw >= p_min_power_kw)
-        AND (
-            p_connector_types IS NULL 
-            OR EXISTS (
-                SELECT 1 
-                FROM unnest(g.available_connector_names::TEXT[]) AS station_connector
-                WHERE station_connector = ANY(p_connector_types)
-            )
+        ST_DWithin(
+            ST_SetSRID(ST_MakePoint(s.longitude, s.latitude), 4326)::geography,
+            ST_SetSRID(ST_MakePoint(p_longitude, p_latitude), 4326)::geography,
+            v_radius_meters
         )
-        AND (p_power_tiers IS NULL OR g.power_tier = ANY(p_power_tiers))
-    ORDER BY distance_km
+    AND (p_min_power_kw IS NULL OR s.available_power_capacity_kw >= p_min_power_kw)
+    AND (p_connector_types IS NULL OR s.available_connector_names && p_connector_types)
+    AND (p_power_tiers IS NULL OR EXISTS (
+        SELECT 1 
+        FROM jsonb_array_elements(s.connectors) AS connector
+        WHERE (connector->>'power_level_kw')::double precision >= 
+            CASE 
+                WHEN 'ultra_fast' = ANY(p_power_tiers) THEN 150
+                WHEN 'fast' = ANY(p_power_tiers) THEN 50
+                WHEN 'medium' = ANY(p_power_tiers) THEN 22
+                WHEN 'slow' = ANY(p_power_tiers) THEN 7
+                ELSE 0
+            END
+    ))
+    ORDER BY ST_Distance(
+        ST_SetSRID(ST_MakePoint(s.longitude, s.latitude), 4326)::geography,
+        ST_SetSRID(ST_MakePoint(p_longitude, p_latitude), 4326)::geography
+    )
     LIMIT p_limit
     OFFSET p_offset;
 END;
 $$ LANGUAGE plpgsql;
 
--- ==========================================
--- Function: Get station details by ID (optimized)
-CREATE OR REPLACE FUNCTION get_station_details(p_station_id INTEGER)
-RETURNS TABLE(
-    station_id INTEGER,
-    name TEXT,
-    address TEXT,
-    city TEXT,
-    state TEXT,
-    country TEXT,
-    postal_code TEXT,
-    latitude FLOAT,
-    longitude FLOAT,
-    max_power_kw FLOAT,
-    available_connectors INTEGER,
-    total_connectors INTEGER,
-    connector_types TEXT[],
-    power_tier TEXT,
-    connectors JSONB,
-    tags JSONB,
-    network_name TEXT,
-    is_operational BOOLEAN
+
+
+DROP FUNCTION IF EXISTS find_nearby_stations;
+
+CREATE OR REPLACE FUNCTION find_nearby_stations(
+    p_longitude double precision,
+    p_latitude double precision,
+    p_radius_km double precision DEFAULT 10,
+    p_limit INTEGER DEFAULT 50,
+    p_offset INTEGER DEFAULT 0
+) RETURNS TABLE(
+    station_id integer,
+    network_id integer,
+    network_name varchar,
+    phone_number varchar,
+    station_name varchar,
+    station_address text,
+    city varchar,
+    state varchar,
+    country varchar,
+    longitude double precision,
+    latitude double precision,
+    tags text[],
+    station_status varchar,
+    is_operational boolean,
+    has_available_connectors boolean,
+    total_connectors integer,
+    total_available_connectors integer,
+    total_power_capacity_kw double precision,
+    available_power_capacity_kw double precision,
+    available_connector_names text[],
+    network jsonb,
+    opening_hours text,
+    capacity integer,
+    fee text,
+    parking_fee text,
+    access text
 ) AS $$
+DECLARE
+    v_radius_meters double precision;
 BEGIN
+    v_radius_meters := p_radius_km * 1000;
+    
     RETURN QUERY
     SELECT 
-        g.station_id,
-        g.name::TEXT,
-        g.address::TEXT,
-        COALESCE(g.city, '')::TEXT,
-        COALESCE(g.state, '')::TEXT,
-        COALESCE(g.country, '')::TEXT,
-        COALESCE(g.postal_code, '')::TEXT,
-        g.latitude::FLOAT,
-        g.longitude::FLOAT,
-        COALESCE(g.max_power_kw, 0)::FLOAT as max_power_kw,
-        COALESCE(g.total_available_connectors, 0)::INTEGER as available_connectors,
-        COALESCE(g.total_connectors, 0)::INTEGER as total_connectors,
-        COALESCE(g.available_connector_names, ARRAY[]::TEXT[])::TEXT[] as connector_types,
-        COALESCE(g.power_tier, 'unknown')::TEXT as power_tier,
-        COALESCE(g.connectors, '[]'::JSONB) as connectors,
-        COALESCE(hstore_to_json(g.tags), '{}'::JSONB) as tags,
-        COALESCE(g.network_name, 'Unknown')::TEXT as network_name,
-        TRUE::BOOLEAN as is_operational
-    FROM mv_charging_stations_geo g
-    WHERE g.station_id = p_station_id;
+        s.station_id::integer,
+        s.network_id::integer,
+        s.network_name::varchar,
+        s.phone_number::varchar,
+        s.station_name::varchar,
+        s.station_address::text,
+        s.city::varchar,
+        s.state::varchar,
+        s.country::varchar,
+        s.longitude::double precision,
+        s.latitude::double precision,
+        s.tags::text[],
+        s.station_status::varchar,
+        s.is_operational::boolean,
+        s.has_available_connectors::boolean,
+        s.total_connectors::integer,
+        s.total_available_connectors::integer,
+        s.total_power_capacity_kw::double precision,
+        s.available_power_capacity_kw::double precision,
+        s.available_connector_names::text[],
+        s.network::jsonb,
+        s.opening_hours::text,
+        s.capacity::integer,
+        s.fee::text,
+        s.parking_fee::text,
+        s.access::text
+    FROM mv_charging_stations s
+    WHERE 
+        ST_DWithin(
+            ST_SetSRID(ST_MakePoint(s.longitude, s.latitude), 4326)::geography,
+            ST_SetSRID(ST_MakePoint(p_longitude, p_latitude), 4326)::geography,
+            v_radius_meters
+        )
+    ORDER BY ST_Distance(
+        ST_SetSRID(ST_MakePoint(s.longitude, s.latitude), 4326)::geography,
+        ST_SetSRID(ST_MakePoint(p_longitude, p_latitude), 4326)::geography
+    )
+    LIMIT p_limit
+    OFFSET p_offset;
 END;
 $$ LANGUAGE plpgsql;

@@ -45,42 +45,42 @@ INSERT INTO stations (
     updated_at
 ) VALUES
 -- STEG Charging Station - Lac
-(1, 202500000001, 'STEG Charging Station - Lac', 'Lac de Tunis, near Tunis City Center', 'Tunis', '', 'Tunisia', '',
+(1, 20251231001, 'STEG Charging Station - Lac', 'Lac de Tunis, near Tunis City Center', 'Tunis', '', 'Tunisia', '',
  ST_GeogFromText('POINT(10.2417 36.8380)'),
  hstore(ARRAY[['amenity','charging_station'],['capacity','4'],['fee','no'],['parking_fee','no'],['access','public']]),
  TRUE, 'system', 'system', NOW(), NOW()),
 -- Hotel Golden Tulip El Mechtel
-(2, 202500000002, 'Hotel Golden Tulip El Mechtel', 'Avenue Ouled Haffouz, Tunis', 'Tunis', '', 'Tunisia', '',
+(2, 20251231002, 'Hotel Golden Tulip El Mechtel', 'Avenue Ouled Haffouz, Tunis', 'Tunis', '', 'Tunisia', '',
  ST_GeogFromText('POINT(10.2087 36.8374)'),
  hstore(ARRAY[['amenity','charging_station'],['capacity','2'],['fee','yes'],['parking_fee','yes'],['access','customers']]),
  TRUE, 'system', 'system', NOW(), NOW()),
 -- Tunisia Mall Charging Point
-(3, 202500000003, 'Tunisia Mall Charging Point', 'Les Berges du Lac, Tunis', 'Tunis', '', 'Tunisia', '',
+(3, 20251231003, 'Tunisia Mall Charging Point', 'Les Berges du Lac, Tunis', 'Tunis', '', 'Tunisia', '',
  ST_GeogFromText('POINT(10.2376 36.8510)'),
  hstore(ARRAY[['amenity','charging_station'],['capacity','6'],['fee','no'],['parking_fee','yes'],['access','public']]),
  TRUE, 'system', 'system', NOW(), NOW()),
 -- Energym Charging Station
-(4, 202500000004, 'Energym Charging Station', 'La Goulette, Tunis', 'Tunis', '', 'Tunisia', '',
+(4, 20251231004, 'Energym Charging Station', 'La Goulette, Tunis', 'Tunis', '', 'Tunisia', '',
  ST_GeogFromText('POINT(10.3050 36.8185)'),
  hstore(ARRAY[['amenity','charging_station'],['capacity','8'],['fee','yes'],['parking_fee','no'],['access','public']]),
  TRUE, 'system', 'system', NOW(), NOW()),
 -- The Residence Tunis
-(5, 202500000005, 'The Residence Tunis', 'Gammarth, Tunis', 'Tunis', '', 'Tunisia', '',
+(5, 20251231005, 'The Residence Tunis', 'Gammarth, Tunis', 'Tunis', '', 'Tunisia', '',
  ST_GeogFromText('POINT(10.3234 36.9542)'),
  hstore(ARRAY[['amenity','charging_station'],['capacity','2'],['fee','no'],['parking_fee','no'],['access','customers']]),
  TRUE, 'system', 'system', NOW(), NOW()),
 -- Carrefour Charging Point
-(6, 202500000006, 'Carrefour Charging Point', 'Marsa, Tunis', 'Tunis', '', 'Tunisia', '',
+(6, 20251231006, 'Carrefour Charging Point', 'Marsa, Tunis', 'Tunis', '', 'Tunisia', '',
  ST_GeogFromText('POINT(10.3247 36.8782)'),
  hstore(ARRAY[['amenity','charging_station'],['capacity','4'],['fee','no'],['parking_fee','no'],['access','public']]),
  TRUE, 'system', 'system', NOW(), NOW()),
 -- Aeroport Tunis-Carthage
-(7, 202500000007, 'Aeroport Tunis-Carthage', 'Aéroport International de Tunis-Carthage', 'Tunis', '', 'Tunisia', '',
+(7, 20251231007, 'Aeroport Tunis-Carthage', 'Aéroport International de Tunis-Carthage', 'Tunis', '', 'Tunisia', '',
  ST_GeogFromText('POINT(10.2272 36.8510)'),
  hstore(ARRAY[['amenity','charging_station'],['capacity','4'],['fee','yes'],['parking_fee','yes'],['access','public']]),
  TRUE, 'system', 'system', NOW(), NOW()),
 -- Station ENNOUR
-(8, 202500000008, 'Station ENNOUR', 'Route de La Marsa, Carthage', 'Tunis', '', 'Tunisia', '',
+(8, 20251231008, 'Station ENNOUR', 'Route de La Marsa, Carthage', 'Tunis', '', 'Tunisia', '',
  ST_GeogFromText('POINT(10.3215 36.8612)'),
  hstore(ARRAY[['amenity','charging_station'],['capacity','2'],['fee','yes'],['parking_fee','no'],['access','public']]),
  TRUE, 'system', 'system', NOW(), NOW())
@@ -134,6 +134,4 @@ INSERT INTO connectors (
 ;
 
 
-update stations set status = 'verified';
-
-CALL force_refresh_charging_station_views();
+UPDATE stations SET status = 'verified';

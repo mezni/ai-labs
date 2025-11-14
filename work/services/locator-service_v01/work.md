@@ -1,3 +1,141 @@
+-- ==========================================
+-- Basic Tests for Tunis
+-- ==========================================
+
+-- Test 1: Basic nearby search in Tunis
+SELECT * FROM find_nearby_stations(
+    p_longitude := 10.1815,
+    p_latitude := 36.8065,
+    p_radius_km := 5,
+    p_limit := 10
+);
+
+-- Test 2: Detailed search in Tunis center
+SELECT * FROM find_nearby_stations_detail(
+    p_longitude := 10.1815,
+    p_latitude := 36.8065,
+    p_radius_km := 3,
+    p_limit := 10
+);
+
+-- ==========================================
+-- Different Areas in Tunis
+-- ==========================================
+
+-- Tunis Medina (old city)
+SELECT * FROM find_nearby_stations(10.1715, 36.7965, 2, 10);
+
+-- Lac de Tunis area  
+SELECT * FROM find_nearby_stations(10.2415, 36.8365, 3, 10);
+
+-- Carthage area (historical site)
+SELECT * FROM find_nearby_stations(10.3215, 36.8515, 2, 10);
+
+-- Sidi Bou Said (famous blue village)
+SELECT * FROM find_nearby_stations(10.3415, 36.8715, 2, 10);
+
+-- ==========================================
+-- Filtered Searches in Tunis
+-- ==========================================
+
+-- Fast chargers only in Tunis
+SELECT * FROM find_nearby_stations_detail(
+    p_longitude := 10.1815,
+    p_latitude := 36.8065,
+    p_radius_km := 10,
+    p_min_power_kw := 50,
+    p_limit := 10
+);
+
+-- Specific connector types in Tunis
+SELECT * FROM find_nearby_stations_detail(
+    p_longitude := 10.1815,
+    p_latitude := 36.8065,
+    p_radius_km := 10,
+    p_connector_types := ARRAY['Type 2', 'CCS Combo 1'],
+    p_limit := 10
+);
+
+-- Ultra-fast chargers only
+SELECT * FROM find_nearby_stations_detail(
+    p_longitude := 10.1815,
+    p_latitude := 36.8065,
+    p_radius_km := 15,
+    p_min_power_kw := 100,
+    p_power_tiers := ARRAY['ultra_fast', 'fast'],
+    p_limit := 10
+);
+
+-- ==========================================
+-- Different Radius Sizes around Tunis
+-- ==========================================
+
+-- City center only (small radius)
+SELECT * FROM find_nearby_stations(10.1815, 36.8065, 1, 5);
+
+-- Greater Tunis area
+SELECT * FROM find_nearby_stations(10.1815, 36.8065, 10, 15);
+
+-- Large area covering suburbs
+SELECT * FROM find_nearby_stations(10.1815, 36.8065, 20, 20);
+
+-- ==========================================
+-- Real-World Scenarios in Tunis
+-- ==========================================
+
+-- Airport charging (Tunis-Carthage Airport)
+SELECT * FROM find_nearby_stations_detail(
+    p_longitude := 10.2272,
+    p_latitude := 36.8513,
+    p_radius_km := 2,
+    p_min_power_kw := 50,
+    p_limit := 5
+);
+
+-- Hotel charging in city center
+SELECT * FROM find_nearby_stations_detail(
+    p_longitude := 10.1815,
+    p_latitude := 36.8065,
+    p_radius_km := 1,
+    p_limit := 5
+);
+
+-- Highway charging near Tunis
+SELECT * FROM find_nearby_stations_detail(
+    p_longitude := 10.0815,
+    p_latitude := 36.8065,
+    p_radius_km := 5,
+    p_min_power_kw := 100,
+    p_limit := 5
+);
+
+-- ==========================================
+-- Edge Cases around Tunis
+-- ==========================================
+
+-- Very small radius (should show only closest stations)
+SELECT * FROM find_nearby_stations(10.1815, 36.8065, 0.1, 3);
+
+-- No filters (get all nearby stations)
+SELECT * FROM find_nearby_stations_detail(
+    p_longitude := 10.1815,
+    p_latitude := 36.8065,
+    p_radius_km := 5,
+    p_min_power_kw := NULL,
+    p_connector_types := NULL,
+    p_power_tiers := NULL,
+    p_limit := 10
+);
+
+-- Only AC chargers (Type 2)
+SELECT * FROM find_nearby_stations_detail(
+    p_longitude := 10.1815,
+    p_latitude := 36.8065,
+    p_radius_km := 5,
+    p_connector_types := ARRAY['Type 2'],
+    p_limit := 10
+);
+
 # Coordinates for Tunis, Tunisia (city center)
 LONGITUDE=10.1815
 LATITUDE=36.8065
