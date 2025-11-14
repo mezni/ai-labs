@@ -1,0 +1,20 @@
+services:
+  auth-service:
+    build: ../../services/auth-service
+    container_name: auth-service
+    restart: unless-stopped
+    ports:
+      - "${AUTH_SERVICE_PORT}:5100"  # External port from .env, internal fixed at 5100
+    environment:
+      - RUST_LOG=${RUST_LOG:-info}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - SERVER_HOST=${AUTH_SERVICE_HOST:-0.0.0.0}
+      - SERVER_PORT=5100  # Internal port fixed at 5100
+      - JWT_SECRET=${AUTH_JWT_SECRET}
+      - JWT_EXPIRY_HOURS=${AUTH_JWT_EXPIRY_HOURS:-24}
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
