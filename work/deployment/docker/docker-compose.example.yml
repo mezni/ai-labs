@@ -1,0 +1,121 @@
+version: '3.8'
+
+services:
+  # Auth Service
+  auth-service:
+    build:
+      context: ../../services/auth-service
+      dockerfile: Dockerfile
+    container_name: auth-service
+    ports:
+      - "${AUTH_SERVICE_PORT:-5100}:5100"
+    environment:
+      - RUST_LOG=${RUST_LOG:-info}
+      - SERVER_HOST=${AUTH_SERVICE_HOST:-0.0.0.0}
+      - SERVER_PORT=5100  # Internal port, always same
+      - JWT_SECRET=${AUTH_JWT_SECRET}
+      - JWT_EXPIRY_HOURS=${AUTH_JWT_EXPIRY_HOURS:-24}
+    env_file:
+      - ../../services/auth-service/.env
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5100/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Database Service
+  database-service:
+    build:
+      context: ../../services/database-service
+      dockerfile: Dockerfile
+    container_name: database-service
+    ports:
+      - "${DB_SERVICE_PORT:-5101}:5101"
+    environment:
+      - RUST_LOG=${RUST_LOG:-info}
+      - SERVER_HOST=${DB_SERVICE_HOST:-0.0.0.0}
+      - SERVER_PORT=5101
+      - DATABASE_URL=${DB_CONNECTION_STRING}
+    env_file:
+      - ../../services/database-service/.env
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5101/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # API Gateway Service
+  api-service:
+    build:
+      context: ../../services/api-service
+      dockerfile: Dockerfile
+    container_name: api-service
+    ports:
+      - "${API_SERVICE_PORT:-5102}:5102"
+    environment:
+      - RUST_LOG=${RUST_LOG:-info}
+      - SERVER_HOST=${API_SERVICE_HOST:-0.0.0.0}
+      - SERVER_PORT=5102
+      - AUTH_SERVICE_URL=http://auth-service:5100
+      - DB_SERVICE_URL=http://database-service:5101
+      - RATE_LIMIT=${API_RATE_LIMIT:-100}
+    env_file:
+      - ../../services/api-service/.env
+    restart: unless-stopped
+    depends_on:
+      - auth-service
+      - database-service
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5102/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: app-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: app-postgres
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-appdb}
+      - POSTGRES_USER=${POSTGRES_USER:-appuser}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-apppass}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - app-network
+
+volumes:
+  redis_data:
+    driver: local
+  postgres_data:
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge
