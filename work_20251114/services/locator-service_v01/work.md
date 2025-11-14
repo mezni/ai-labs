@@ -1,3 +1,29 @@
+curl "http://localhost:8080/api/stations/nearby?longitude=10.1815&latitude=36.8065&radius_km=10"
+
+
+
+curl -H "Authorization: Bearer your_token" \
+     "http://localhost:8080/api/stations/nearby?longitude=10.1815&latitude=36.8065&radius_km=10&min_power_kw=50"
+
+
+curl -H "Authorization: Bearer your_token" \
+     "http://localhost:8080/api/stations/nearby?longitude=10.1815&latitude=36.8065&radius_km=15&min_power_kw=100&connector_types=CCS&power_tiers=ultra_fast,fast&limit=20&offset=0"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 -- ==========================================
 -- Basic Tests for Tunis
 -- ==========================================
