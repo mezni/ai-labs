@@ -88,10 +88,25 @@ services:
       timeout: 10s
       retries: 3
 
+  api-gateway:
+    image: nginx:latest
+    container_name: api-gateway
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - auth-service
+      - locator-service
+    networks:
+      - app-network  # Add this line
+    restart: unless-stopped
+
 volumes:
   postgres_data:
     driver: local
-    
+   
 networks:
   app-network:
     driver: bridge
+
