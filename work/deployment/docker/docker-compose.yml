@@ -88,6 +88,32 @@ services:
       timeout: 10s
       retries: 3
 
+
+  configurator-service:
+    build:
+      context: ../../services/configurator-service
+      dockerfile: Dockerfile
+    container_name: configurator-service
+    ports:
+      - "${CONFIGURATOR_SERVICE_PORT:-5900}:5900"
+    environment:
+      - RUST_LOG=${RUST_LOG:-info}
+      - SERVER_HOST=${CONFIGURATOR_SERVICE_HOST:-0.0.0.0}
+      - SERVER_PORT=5900
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-service:5432/${POSTGRES_DB}
+      - JWT_SECRET=${AUTH_JWT_SECRET}
+    restart: unless-stopped
+    depends_on:
+      db-service:
+        condition: service_healthy
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5900/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   api-gateway:
     image: nginx:latest
     container_name: api-gateway
