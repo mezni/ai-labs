@@ -19,15 +19,4 @@ It supports:
 
 ## 🗺️ Entity Relationship Diagram (ERD)
 
-```mermaid
-erDiagram
-    DIM_TIME ||--o{ FCT_ROAM_OUT : has
-    DIM_TIME ||--o{ FCT_ROAM_IN : has
-    DIM_COUNTRIES ||--o{ DIM_NETWORKS : has
-    DIM_NETWORKS ||--o{ DIM_OPERATORS : has
-    DIM_OPERATORS ||--o{ FCT_ROAM_OUT : provides
-    DIM_OPERATORS ||--o{ FCT_ROAM_IN : provides
-    DIM_PREFIXES ||--o{ FCT_ROAM_OUT : links
-    DIM_PREFIXES ||--o{ FCT_ROAM_IN : links
-    FCT_ROAM_OUT ||--o{ NOTIFICATIONS : triggers
-    FCT_ROAM_IN ||--o{ NOTIFICATIONS : triggers
+![image description](images/erd.svg)
