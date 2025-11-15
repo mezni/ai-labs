@@ -1,4 +1,5 @@
 services:
+  # Auth Service
   auth-service:
     build: ../../services/auth-service
     container_name: auth-service
@@ -15,6 +16,82 @@ services:
     networks:
       - app-network
 
+  # Database Service (PostGIS)
+  db-service:
+    image: postgis/postgis:14-3.3
+    container_name: db-service
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-appdb}
+      - POSTGRES_USER=${POSTGRES_USER:-appuser}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-apppass}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF8
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../../services/db-service/initdb:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-appuser} -d ${POSTGRES_DB:-appdb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # OSM importer Service
+  osm-importer:
+    build:
+      context: ../../services/osm-importer
+      dockerfile: Dockerfile
+    container_name: osm-importer
+    depends_on:
+      db-service:
+        condition: service_healthy
+    environment:
+      - PGHOST=db-service
+      - PGPORT=${POSTGRES_PORT:-5432}
+      - PGUSER=${POSTGRES_USER}
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+      - PGDATABASE=${POSTGRES_DB}
+      - REGION=${RERION:-tunisia}
+      - DATADIR=/osm/data
+    volumes:
+      - ../../data:/osm/data
+    networks:
+      - app-network
+    restart: unless-stopped
+
+
+  locator-service:
+    build:
+      context: ../../services/locator-service
+      dockerfile: Dockerfile
+    container_name: locator-service
+    ports:
+      - "${LOCATOR_SERVICE_PORT:-5800}:5800"
+    environment:
+      - RUST_LOG=${RUST_LOG:-info}
+      - SERVER_HOST=${LOCATOR_SERVICE_HOST:-0.0.0.0}
+      - SERVER_PORT=5800
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-service:5432/${POSTGRES_DB}
+      - JWT_SECRET=${AUTH_JWT_SECRET}
+    restart: unless-stopped
+    depends_on:
+      db-service:
+        condition: service_healthy
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5800/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+    driver: local
+    
 networks:
   app-network:
     driver: bridge

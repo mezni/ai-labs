@@ -2,6 +2,7 @@
 name = "locator-service"
 version = "0.1.0"
 edition = "2024"
+authors = ["M.MEZNI <mamezni@gmail.com>"]
 
 [dependencies]
 actix-web = "4.11.0"
