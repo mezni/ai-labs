@@ -1,0 +1,35 @@
+flowchart LR
+ subgraph Users["Users"]
+        U1["Public"]
+        U2["Client"]
+  end
+ subgraph UserFeatures["Features"]
+        F1["Opens app to find nearby available stations, view info and amnities"]
+        F2["Filters by fast-charging and available connectors"]
+        F3["registration and account activation"]
+        F4["Navigates to selected station with route guidance"]
+        F5["Rates station and provides feedback"]
+        F6["book session, arrives at station and authenticates via app/QR code"]
+  end
+    U1 --> F1 & F2 & F3
+    U2 --> F1 & F2 & F3 & F4 & F5 & F6
+
+    style F6 stroke:#FFD600
+
+
+ subgraph Admins["Admins"]
+        U3["Operator"]
+        U4["Partner"]
+        U5["Admin"]
+  end
+ subgraph AdminFeatures["Features"]
+        F21["Opens app to find nearby available stations, view info and amnities"]
+        F22["Filters by fast-charging and available connectors"]
+        F23["registration and account activation"]
+        F24["Navigates to selected station with route guidance"]
+        F25["Rates station and provides feedback"]
+        F26["book session, arrives at station and authenticates via app/QR code"]
+  end
+
+    U3 --> F21 & F22 & F23
+    U4 --> F21 & F22 & F23 & F24 & F25 & F26
