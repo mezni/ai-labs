@@ -1,0 +1,10 @@
+i need a DDD for electrical vehicule charging statings
+1- 2 contexts: user management and stations management
+2- 5 roles : public user, customer (registered user), partener (have a list of stations), 
+operator (can update info station), admin (plateform admin)  
+3- user can registered and activation is by send an email 
+4- admin can create networks and Users related to each network
+5- partener can view only his network , and create users 
+6- operator can only view stations related to him
+how to design users management : users , roles , permissions
+how to design stations management 
