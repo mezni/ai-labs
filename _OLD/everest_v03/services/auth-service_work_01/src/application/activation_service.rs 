@@ -1,0 +1,52 @@
+use crate::domain::{
+    registration::RegistrationStatus,
+    repositories::{UserRegistrationRepository, UserRepository},
+    services::UserActivationService,
+    user::User,
+};
+use std::sync::Arc;
+use uuid::Uuid;
+
+pub struct UserActivationAppService {
+    registration_repo: Arc<dyn UserRegistrationRepository>,
+    user_repo: Arc<dyn UserRepository>,
+}
+
+impl UserActivationAppService {
+    pub fn new(
+        registration_repo: Arc<dyn UserRegistrationRepository>,
+        user_repo: Arc<dyn UserRepository>,
+    ) -> Self {
+        Self {
+            registration_repo,
+            user_repo,
+        }
+    }
+}
+
+impl UserActivationService for UserActivationAppService {
+    fn activate_user(
+        &self,
+        registration_id: Uuid,
+        keycloak_id: String,
+    ) -> Result<User, String> {
+        let registration = self
+            .registration_repo
+            .find_by_id(registration_id)
+            .ok_or("Registration not found")?;
+
+        if registration.status() != &RegistrationStatus::Verified {
+            return Err("Registration not verified".into());
+        }
+
+        let user = User::activate(
+            registration.id(),
+            keycloak_id,
+            registration.email().clone(),
+            None,
+        );
+
+        self.user_repo.save(&user);
+        Ok(user)
+    }
+}

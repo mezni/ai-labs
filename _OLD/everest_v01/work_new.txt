@@ -1,0 +1,307 @@
+1. Purpose
+
+The Auth Service is the single security backbone of the platform.
+
+It is not a login system. Its responsibilities are:
+
+Manage users (internal and external)
+
+Enforce roles, scopes, and permissions
+
+Validate Keycloak-issued JWTs
+
+Synchronize users between Keycloak and PostgreSQL
+
+Record all security-relevant actions
+
+Expose a clean HTTP API with Swagger
+
+Passwords and authentication are delegated entirely to Keycloak.
+This service never stores or handles credentials.
+
+2. System Boundaries
+Keycloak (Identity Source of Truth)
+
+Owns user authentication
+
+Owns email verification
+
+Issues JWTs
+
+PostgreSQL (Authorization & Business Source of Truth)
+
+Owns roles, network, station, and metadata
+
+Auditable changes
+
+Soft delete and lifecycle state
+
+Auth Service
+
+Sole integration point with Keycloak
+
+Synchronizes DB and Keycloak
+
+Validates JWTs for all other services
+
+Other services must never call Keycloak directly.
+
+3. User Types & Rules
+User Type	Creation	Role Constraints	Source
+External	Self-registration	user only	web
+Internal	Admin-created	admin, partner, operator	internal
+
+Internal users must satisfy scope rules:
+partner → network_id required
+operator → network_id + station_id required
+
+4. JWT Model
+
+JWTs are issued by Keycloak
+
+Auth Service validates:
+
+Signature (cached public keys)
+
+Claims (user_id, roles, network_id, station_id)
+
+No DB lookup required for normal authorization
+
+Roles in JWT are validated against DB rules, never trusted directly
+
+5. Synchronization Rules
+
+Scheduled background job
+
+Idempotent and auditable
+
+Detects drift between Keycloak and DB
+
+Sync actions logged in keycloak_sync_log
+
+Rules:
+
+Roles: DB → Keycloak
+
+Account status: Keycloak → DB
+
+6. Auditing & Logging
+
+All admin and security-relevant actions are logged automatically
+
+Key tables:
+
+login_audit_log → login/logout/token actions
+
+keycloak_sync_log → all Keycloak integration events
+
+email_verification_logs → verification emails
+
+rate_limits → abuse prevention
+
+No public endpoints write logs directly.
+
+7. Layering Principles
+Layer	Responsibility
+Domain	Enforces business rules, invariants, and aggregates
+Application	Orchestrates use cases, commands, queries, policies
+Infrastructure	Database repositories, Keycloak client, cache
+Interfaces	HTTP handlers, routes, Swagger docs
+
+Rules:
+
+No business logic in HTTP handlers
+
+No DB access outside repositories
+
+No Keycloak calls outside infrastructure
+
+Always audit admin actions
+
+Always soft-delete users
+
+8. Hard Security Rules
+
+Never store passwords
+
+Never trust client-supplied roles
+
+Never bypass Keycloak
+
+JWTs must always be validated before granting access
+
+DB ↔ Keycloak sync is mandatory and audited
+
+9. Critical Technical Notes
+
+IDs: NanoID-based with prefixes (USR-, AUD-, etc.)
+
+Tech Stack: Rust, Actix-Web, SQLx + PostgreSQL, Keycloak, tracing, nanoid, utoipa + Swagger, thiserror, anyhow, dotenvy
+for sqlx use Dynamic Queries (query / query_as)
+Caching: Public keys & metadata cached in-memory
+
+Admin Safety: Cannot delete the last admin, actions always audited
+
+10. Mental Model for Developers
+Keycloak authenticates → Auth Service validates & syncs → DB authorizes → Services trust JWT
+
+
+All cross-service security flows go through Auth Service only.
+
+
+Expected claims:
+
+{
+  "sub": "keycloak-user-id",
+  "user_id": "USR-xxxxxxxxxxxx",
+  "roles": ["admin"],
+  "network_id": "NET-xxx",
+  "station_id": "STA-xxx",
+  "iss": "...",
+  "exp": 1710000000
+}
+
+env variables with 2 keycloak clients
+DATABASE_URL=postgresql://postgres:password@localhost:6200/auth_db
+SERVER_HOST=0.0.0.0
+SERVER_PORT=3000
+RUST_LOG=info
+
+# Keycloak Configuration
+KEYCLOAK_URL=http://localhost:5080
+KEYCLOAK_REALM=myrealm
+
+# Frontend client (public, for user authentication)
+KEYCLOAK_AUTH_CLIENT_ID=auth-client
+
+# Backend service account (confidential, for admin operations)
+KEYCLOAK_BACKEND_CLIENT_ID=backend-admin
+KEYCLOAK_BACKEND_CLIENT_SECRET=backend-admin-secret
+
+
+File structure
+Root
+src/
+├── main.rs
+├── lib.rs
+
+2. Core (shared utilities)
+src/core/
+├── config.rs           # Load env vars, Keycloak & DB config
+├── logging.rs          # Tracing setup
+├── errors.rs           # AppError, Result types
+├── database.rs         # SQLx pool setup
+├── jwt.rs              # JWT validation, claim extraction, caching public keys
+├── constants.rs        # Static values, roles, scopes, prefixes
+└── id_generator.rs     # NanoID-based ID generation
+
+3. Domain (business rules)
+src/domain/
+├── user.rs             # User entity & invariants
+├── registration.rs     # Registration workflow rules
+├── token.rs            # Token aggregates / validations
+├── value_objects.rs    # Email, phone, username, password rules
+├── events.rs           # Domain events (user_created, password_changed)
+└── repositories.rs     # Traits for UserRepo, RegistrationRepo, TokenRepo
+
+4. Application (use cases, orchestration)
+src/application/
+├── user_dtos.rs        # Self-user profile read/update DTOs
+├── auth_dtos.rs        # Registration, login, password change DTOs
+├── user_commands.rs    # Commands for updating user profile
+├── user_queries.rs     # Queries for fetching user info
+├── user_services.rs    # Orchestrates self-user commands & queries
+├── auth_commands.rs    # Registration, login, password change commands
+├── auth_queries.rs     # Registration & login queries
+└── auth_services.rs    # Orchestrates auth-related operations
+
+5. Infrastructure (external integrations)
+src/infrastructure/
+├── user_repo.rs           # SQLx implementations for UserRepo
+├── registration_repo.rs   # SQLx for user_registrations table
+├── keycloak_client.rs     # Keycloak API client (front & backend clients)
+└── cache.rs               # In-memory caching (public keys, metadata)
+
+6. Interfaces (HTTP endpoints / Swagger)
+src/interfaces/
+├── handlers.rs        # Actix handlers for routes
+├── routes.rs          # Route registration
+└── openapi.rs         # Utoipa + Swagger definitions
+
+7. Background Jobs
+src/jobs/
+└── keycloak_sync.rs   # Periodic job: sync Keycloak ↔ DB, audit changes
+
+✅ Notes
+
+Self-user cannot cha
+
+
+Endpoints List 
+Endpoints Summary (Updated)
+Auth / Registration
+Method	Path	Description
+POST	/api/v1/auth/register	External user self-registration
+POST	/api/v1/auth/login	Login (Auth Service calls Keycloak)
+POST	/api/v1/auth/change-password	Self-user password change via Auth Service → Keycloak
+User (Self)
+Method	Path	Description
+GET	/api/v1/users/me	Get own profile
+PUT	/api/v1/users/me	Update profile (no password/email)
+Admin (Internal)
+Method	Path	Description
+POST	/api/v1/admin/users	Create internal user
+GET	/api/v1/admin/users	List users
+GET	/api/v1/admin/users/{id}	Get user details
+PUT	/api/v1/admin/users/{id}	Update user details / roles / email
+DELETE	/api/v1/admin/users/{id}	Soft delete user + disable in Keycloak
+POST	/api/v1/admin/users/{id}/reset-password	Admin password reset
+6. Developer Notes / Rules
+
+All JWTs validated by Auth Service before access.
+
+No passwords stored in DB or logs.
+
+Self-user cannot update email; only admins.
+
+Dynamic SQLx queries are allowed for flexible searches; static queries for single-row safety.
+
+Audit all admin and self-password actions.
+
+Keycloak clients separated: front = public auth, backend = admin ops.
+
+If you want, I can draw a clear diagram showing:
+
+/auth/login → Auth Service → Keycloak → JWT
+
+/users/me → DB + JWT validation
+
+
+table 
+CREATE TABLE IF NOT EXISTS users (
+    user_id VARCHAR(32) PRIMARY KEY,           -- USR + nanoid
+    keycloak_id VARCHAR(255) UNIQUE NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    username VARCHAR(100) NOT NULL,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    phone VARCHAR(20),
+    photo TEXT,
+    is_verified BOOLEAN DEFAULT FALSE,
+    role VARCHAR(50) NOT NULL DEFAULT 'user',
+    network_id VARCHAR(32) NOT NULL DEFAULT '',
+    station_id VARCHAR(32) NOT NULL DEFAULT '',
+    source VARCHAR(20) NOT NULL DEFAULT 'web',   -- 'web' or 'internal'
+    is_active BOOLEAN DEFAULT TRUE,
+    deleted_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    created_by VARCHAR(32),
+    updated_by VARCHAR(32),
+    CONSTRAINT valid_role CHECK (role IN ('user', 'admin', 'partner', 'operator')),
+    CONSTRAINT valid_source CHECK (source IN ('web', 'internal')),
+    CONSTRAINT check_deleted CHECK (
+        (deleted_at IS NULL AND is_active = TRUE) OR 
+        (deleted_at IS NOT NULL AND is_active = FALSE)
+    )
+);

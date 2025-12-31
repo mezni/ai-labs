@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE users \n            SET updated_at = NOW()\n            WHERE user_id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d55ec2dd615f8d53594ade9a0ff5f4a1695f00f06ce5e169f8228c3ada17e58f"
+}

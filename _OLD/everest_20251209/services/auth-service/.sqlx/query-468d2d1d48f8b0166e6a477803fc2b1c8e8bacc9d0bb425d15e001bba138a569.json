@@ -1,0 +1,136 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO users (\n                user_id, keycloak_id, email, username, first_name, last_name, \n                phone, photo, role, network_id, station_id, source, created_by\n            )\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)\n            RETURNING \n                user_id as \"user_id!\",\n                keycloak_id as \"keycloak_id!\",\n                email as \"email!\",\n                username as \"username!\",\n                first_name,\n                last_name,\n                phone,\n                photo,\n                is_verified as \"is_verified!\",\n                role as \"role!\",\n                network_id as \"network_id!\",\n                station_id as \"station_id!\",\n                source as \"source!\",\n                is_active as \"is_active!\",\n                created_at as \"created_at!\",\n                updated_at as \"updated_at!\",\n                created_by,\n                updated_by\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "keycloak_id!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "email!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "username!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "first_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "last_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "phone",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "photo",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "is_verified!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "role!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 10,
+        "name": "network_id!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 11,
+        "name": "station_id!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 12,
+        "name": "source!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 13,
+        "name": "is_active!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 14,
+        "name": "created_at!",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 15,
+        "name": "updated_at!",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 16,
+        "name": "created_by",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 17,
+        "name": "updated_by",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Text",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Varchar"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "468d2d1d48f8b0166e6a477803fc2b1c8e8bacc9d0bb425d15e001bba138a569"
+}

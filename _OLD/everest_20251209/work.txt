@@ -1,0 +1,12 @@
+docker exec -it evcs-db psql -U postgres -d evcs_db
+
+
+REFRESH MA-- Refresh materialized viewseo;
+REFRESH MATERIALIZED VIEW mv_stations_geo;
+REFRESH MATERIALIZED VIEW mv_stations_summary;
+REFRESH MATERIALIZED VIEW mv_connector_type_stats;
+REFRESH MATERIALIZED VIEW mv_stations_reviews;
+
+-- Call the function
+SELECT *
+FROM find_nearby_stations(36.8380, 10.2417, 2000, 10);
