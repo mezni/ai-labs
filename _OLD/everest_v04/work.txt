@@ -1,9 +1,0 @@
-{
-  "confirm_password": "Passw0rd",
-  "email": "dali@gmail.com",
-  "first_name": "dali",
-  "last_name": "mezni",
-  "password": "Passw0rd",
-  "phone": "50015001",
-  "username": "dali"
-}
