@@ -1,2 +1,0 @@
-[console_scripts]
-catalyst = main:main

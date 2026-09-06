@@ -1,9 +1,0 @@
-README.md
-main.py
-pyproject.toml
-blueprint.egg-info/PKG-INFO
-blueprint.egg-info/SOURCES.txt
-blueprint.egg-info/dependency_links.txt
-blueprint.egg-info/entry_points.txt
-blueprint.egg-info/requires.txt
-blueprint.egg-info/top_level.txt

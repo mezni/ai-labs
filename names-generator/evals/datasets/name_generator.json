@@ -1,0 +1,22 @@
+[
+  {
+    "input": "AI platform for monitoring agents",
+    "expected_characteristics": ["short", "technical", "memorable"]
+  },
+  {
+    "input": "app to track gym workouts",
+    "expected_characteristics": ["short", "athletic", "memorable"]
+  },
+  {
+    "input": "medical assistant for doctors",
+    "expected_characteristics": ["short", "trustworthy", "memorable"]
+  },
+  {
+    "input": "tool for collaborative design reviews",
+    "expected_characteristics": ["short", "collaborative", "memorable"]
+  },
+  {
+    "input": "personal finance budgeting dashboard",
+    "expected_characteristics": ["short", "financial", "memorable"]
+  }
+]
