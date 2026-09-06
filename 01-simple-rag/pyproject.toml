@@ -1,19 +1,23 @@
 [project]
 name = "01-simple-rag"
 version = "0.1.0"
-description = "Add your description here"
+description = "Simple Retrieval-Augmented Generation (RAG) experiment"
 readme = "README.md"
 authors = [
     { name = "M.Mezni", email = "mamezni@gmail.com" }
 ]
 requires-python = ">=3.13"
 dependencies = [
+    "faiss-cpu>=1.15.0",
+    "httpx>=0.28.1",
+    "numpy>=2.5.2",
+    "pypdf>=6.17.0",
+    "python-dotenv>=1.2.3",
+    "pyyaml>=6.0.3",
+    "requests>=2.34.2",
+    "streamlit>=1.63.0",
     "weasyprint>=69.0",
 ]
 
-[project.scripts]
-01-simple-rag = "01_simple_rag:main"
-
-[build-system]
-requires = ["uv_build>=0.12.3,<0.13.0"]
-build-backend = "uv_build"
+[tool.uv]
+package = false

@@ -1,0 +1,23 @@
+embeddings:
+  provider: openrouter
+  openrouter_url: https://openrouter.ai/api/v1/embeddings
+  model: openai/text-embedding-3-small
+  batch_size: 64
+  timeout_seconds: 120
+
+chunking:
+  chunk_size: 1000
+  overlap: 200
+
+vector_store:
+  dir: data/faiss
+  index_file: policy.index
+  metadata_file: metadata.json
+
+llm:
+  provider: openrouter
+  openrouter_url: https://openrouter.ai/api/v1/chat/completions
+  model: openai/gpt-4o-mini
+  max_tokens: 4096
+  temperature: 0.3
+  timeout_seconds: 120

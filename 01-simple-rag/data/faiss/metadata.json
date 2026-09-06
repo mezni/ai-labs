@@ -1,0 +1,130 @@
+[
+  {
+    "filename": "acceptable_use_policy.pdf",
+    "text": "AETHER WIRELESS\nTerms of Service & Network Acceptable Use Policy (AUP)\nDocument ID: POL-AETH-2026-V1 Effective Date: September 1, 2026\n1. Overview and Intent\nAether Wireless (\"Company\", \"we\", \"us\", or \"our\") is committed to delivering high-speed, reliable, and low-latency cloud-\nnative  5G/6G  connectivity  to  all  subscribers.  This  Acceptable  Use  Policy  (\"AUP\")  defines  the  rules  and  guidelines\ngoverning the use of Aether Wireless's voice, data, text, and cloud network services (collectively, the \"Services\").\nBy accessing or using the Services, subscribers (\"Users\" or \"Customers\") agree to strictly adhere to the terms set forth in\nthis document.\n2. Fair Usage Policy (FUP) & Bandwidth Governance\nTo  preserve  network  quality  and  avoid  congestion  for  all  subscribers,  Aether  Wireless  employs  dynamic  network\nmanagement practices across unlimited and tiered data plans.\nService Plan Tier Priority Data\nThreshold Post-Threshold Management Included Roaming\nAether Essentia"
+  },
+  {
+    "filename": "acceptable_use_policy.pdf",
+    "text": "r  Wireless  employs  dynamic  network\nmanagement practices across unlimited and tiered data plans.\nService Plan Tier Priority Data\nThreshold Post-Threshold Management Included Roaming\nAether Essential 50 GB / month Throttled to 1 Mbps during network congestion 5 GB Domestic / 0 GB Intl\nAether Premier 5G 150 GB / month Dynamic QoS adjustments; minimum 10 Mbps\nguarantee 25 GB Domestic / 5 GB Intl\nAether Enterprise\nPro Uncapped Priority Dedicated network slicing with guaranteed SLA Uncapped Domestic / 25\nGB Intl\nNotice on Automated Traffic Management:\nAether Wireless utilizes automated Deep Packet Inspection (DPI) solely for traffic prioritization and routing optimization.\nContent payload data is never inspected or logged. \n3. Prohibited and Unlawful Uses\nSubscribers are strictly prohibited from utilizing Aether Wireless infrastructure for any activities deemed unlawful, abusive,\nor disruptive to network operations:\nNetwork  Attacks  &  Tampering: Launching  Denial  of  Service  (DoS/DDo"
+  },
+  {
+    "filename": "acceptable_use_policy.pdf",
+    "text": "from utilizing Aether Wireless infrastructure for any activities deemed unlawful, abusive,\nor disruptive to network operations:\nNetwork  Attacks  &  Tampering: Launching  Denial  of  Service  (DoS/DDoS)  attacks,  distributing  malware,  or\nunauthorized scanning.\nSpam and Unsolicited Messaging:  Automated mass-messaging or telephone spam schemes in violation of privacy\nlaws.\nUnauthorized Resale: Reselling network bandwidth or establishing unauthorized public hotspots.\nIllegal  Content  Transmission: Storing  or  transmitting  material  that  violates  intellectual  property  or  criminal\nregulations.\n4. Network Security & Device Standards\nCustomers are responsible for ensuring that all devices connected to the Aether Wireless network meet official regulatory\nstandards (e.g., FCC, CE) and are free from malicious software.\n• \n• \n• \n• \nAether Wireless • Corporate Compliance & Policies Page 1 of 2\n5. Policy Enforcement & Remedies\nFailure to comply with this policy may result in progressive"
+  },
+  {
+    "filename": "acceptable_use_policy.pdf",
+    "text": "re free from malicious software.\n• \n• \n• \n• \nAether Wireless • Corporate Compliance & Policies Page 1 of 2\n5. Policy Enforcement & Remedies\nFailure to comply with this policy may result in progressive enforcement actions:\nWarning Notice: Digital notification requesting immediate mitigation.\nTemporary Restriction: Protocol restriction or dynamic QoS throttling.\nService Suspension: Temporary suspension of voice and data service access.\nPermanent Termination: Account closure and forfeiture of remaining prepaid credits.\nAPPROVED BY: LEGAL & REGULATORY AFFAIRS APPROVED BY: CHIEF NETWORK OFFICER (CNO)\n1. \n2. \n3. \n4. \nAether Wireless • Corporate Compliance & Policies Page 2 of 2"
+  },
+  {
+    "filename": "billing_invoice_policy.pdf",
+    "text": "AETHER WIRELESS\nBilling & Invoice Policy\nDocument ID: POL-AETH-BILL-001 Effective Date: September 1, 2026\n1. Billing Cycle & Statement Issuance\nAether Wireless issues monthly electronic statements on the 1st of each calendar month. Statements are made available\nvia the subscriber's online account portal and transmitted to the registered email address on file.\n2. Payment Due Dates & Late Fees\nDue Date: Payments are due exactly 21 days from the statement date.\nLate Grace Period:  A 5-day grace period is granted following the due date. Accounts not settled within this window\nare subject to a $5.00 late fee.\nService Interruption: Accounts overdue by more than 30 days may be subject to service suspension.\n3. Disputed Charges\nSubscribers  must  submit  billing  disputes  within  60  days  of  the  statement  date.  Disputes  should  be  directed  to\nbilling@aetherwireless.com with the subject line \"Billing Dispute - [Account Number]\".\n4. Refund Policy\nRefunds for overpayments or early servic"
+  },
+  {
+    "filename": "billing_invoice_policy.pdf",
+    "text": "e  statement  date.  Disputes  should  be  directed  to\nbilling@aetherwireless.com with the subject line \"Billing Dispute - [Account Number]\".\n4. Refund Policy\nRefunds for overpayments or early service termination are processed within 10 business days and applied as a credit to\nthe subscriber's account or returned via the original payment method.\nAPPROVED BY: LEGAL & REGULATORY AFFAIRS APPROVED BY: CHIEF NETWORK OFFICER (CNO)\n• \n• \n• \nAether Wireless • Corporate Compliance & Policies Page 1 of 1"
+  },
+  {
+    "filename": "data_plan_terms_conditions.pdf",
+    "text": "AETHER WIRELESS\nData Plan Terms & Conditions\nDocument ID: POL-AETH-DATA-001 Effective Date: September 1, 2026\n1. Plan Overview & Data Allowances\nEach Aether Wireless data plan includes a specific monthly data allowance as outlined in the subscriber's service\nagreement. Unused data does not roll over unless explicitly stated in the plan tier.\n2. Data Speed & Throttling\nUpon exceeding the monthly high-speed data allowance, data speeds may be reduced to a lower priority tier subject to\nnetwork availability. Fair Usage Policy (FUP) thresholds apply as defined in the Acceptable Use Policy.\n3. International Roaming\nData roaming allowances vary by plan and destination country. Roaming rates and allowances are published in the rate\ncard and are subject to change with 30 days' notice.\n4. Plan Changes\nSubscribers may change their data plan at any time. Plan changes take effect on the next billing cycle. A pro-rated\nadjustment may apply for mid-cycle upgrades.\n5. Usage Monitoring\nSubscribers can "
+  },
+  {
+    "filename": "data_plan_terms_conditions.pdf",
+    "text": "es\nSubscribers may change their data plan at any time. Plan changes take effect on the next billing cycle. A pro-rated\nadjustment may apply for mid-cycle upgrades.\n5. Usage Monitoring\nSubscribers can monitor data usage through the mobile app or online portal. Usage alerts are sent at 50%, 80%, and\n100% of the monthly allowance.\nAPPROVED BY: LEGAL & REGULATORY AFFAIRS APPROVED BY: CHIEF NETWORK OFFICER (CNO)\nAether Wireless • Corporate Compliance & Policies Page 1 of 1"
+  },
+  {
+    "filename": "device_protection_policy.pdf",
+    "text": "AETHER WIRELESS\nDevice Protection Policy\nDocument ID: POL-AETH-DEV-001 Effective Date: September 1, 2026\n1. Coverage Overview\nAether Wireless Device Protection provides coverage against accidental damage, malfunctions, theft, and loss for eligible\ndevices enrolled in the program.\n2. Covered Events\nAccidental Damage: Cracks, liquid damage, and other physical damage from drops or spills.\nMechanical Failure: Non-covered manufacturer defects after warranty expiration.\nTheft & Loss: Replacement of lost or stolen devices subject to claim verification.\n3. Deductibles\nA service deductible applies to each approved claim, based on the device tier. Deductibles range from $29 to $199\ndepending on device model and protection tier selected.\n4. Claims Process\nClaims may be filed through the Aether Wireless portal, mobile app, or by calling customer support. An approved claim\nresults in a replacement device shipped within 1-3 business days.\n5. Exclusions\nCoverage does not apply to intentional damage, "
+  },
+  {
+    "filename": "device_protection_policy.pdf",
+    "text": "ss portal, mobile app, or by calling customer support. An approved claim\nresults in a replacement device shipped within 1-3 business days.\n5. Exclusions\nCoverage does not apply to intentional damage, pre-existing conditions, cosmetic issues without functional impact, or\ndevices not enrolled in the program at the time of the incident.\nAPPROVED BY: LEGAL & REGULATORY AFFAIRS APPROVED BY: CHIEF NETWORK OFFICER (CNO)\n• \n• \n• \nAether Wireless • Corporate Compliance & Policies Page 1 of 1"
+  },
+  {
+    "filename": "device_trade_in_process.pdf",
+    "text": "AETHER WIRELESS\nDevice Trade-In Process\nDocument ID: POL-AETH-TRADE-001 Effective Date: September 1, 2026\n1. Eligibility Requirements\nTrade-in devices must be fully functional, free of significant damage, and free of any outstanding financial obligations\nunder a device payment plan.\n2. Trade-In Valuation\nTrade-in values are determined based on device model, age, condition, and market value at the time of the trade-in\nquote. Quotes are valid for 30 days.\n3. Trade-In Steps\nRequest Quote: Obtain a trade-in valuation through the online portal or in-store.\nBackup & Reset: Back up your data and perform a factory reset before shipping.\nShip Device: Package the device using the provided prepaid shipping label.\nReceive Credit: Credit is applied to your account within 5 business days of device inspection.\n4. Inspection & Adjustment\nReceived devices are inspected against the quoted condition. If discrepancies are found, the trade-in value may be\nadjusted and the subscriber notified.\n5. Return of "
+  },
+  {
+    "filename": "device_trade_in_process.pdf",
+    "text": "ction.\n4. Inspection & Adjustment\nReceived devices are inspected against the quoted condition. If discrepancies are found, the trade-in value may be\nadjusted and the subscriber notified.\n5. Return of Ineligible Devices\nDevices that do not meet trade-in eligibility are returned to the subscriber at no cost if the device holds data value, or\nsecurely recycled otherwise.\nAPPROVED BY: LEGAL & REGULATORY AFFAIRS APPROVED BY: CHIEF NETWORK OFFICER (CNO)\n1. \n2. \n3. \n4. \nAether Wireless • Corporate Compliance & Policies Page 1 of 1"
+  },
+  {
+    "filename": "device_upgrade_guidelines.pdf",
+    "text": "AETHER WIRELESS\nDevice Upgrade Guidelines\nDocument ID: POL-AETH-UPG-001 Effective Date: September 1, 2026\n1. Upgrade Eligibility\nSubscribers are eligible for a discounted device upgrade once their device payment plan balance reaches 50% paid or\nafter 24 months of an active eligible plan. Eligibility is verified at the time of purchase.\n2. Early Upgrade\nEarly upgrades may be available at full retail price with the remaining device balance folded into a new installment\nagreement, or via eligible trade-in credit.\n3. Upgrade Process\nConfirm eligibility through the Aether Wireless portal or in-store.\nSelect a new device and review installment terms.\nComplete the trade-in (if applicable) to offset the upgrade cost.\nReceive and activate the new device on the existing line.\n4. Fees & Taxes\nUpgrade activation fees of $35 may apply and are disclosed prior to purchase. Applicable taxes are calculated at\ncheckout.\nAPPROVED BY: LEGAL & REGULATORY AFFAIRS APPROVED BY: CHIEF NETWORK OFFICER (CNO)\n1. "
+  },
+  {
+    "filename": "device_upgrade_guidelines.pdf",
+    "text": " activation fees of $35 may apply and are disclosed prior to purchase. Applicable taxes are calculated at\ncheckout.\nAPPROVED BY: LEGAL & REGULATORY AFFAIRS APPROVED BY: CHIEF NETWORK OFFICER (CNO)\n1. \n2. \n3. \n4. \nAether Wireless • Corporate Compliance & Policies Page 1 of 1"
+  },
+  {
+    "filename": "network_service_policy.pdf",
+    "text": "AETHER WIRELESS\nNetwork Service Level Agreement (SLA)\nDocument ID: POL-AETH-NET-001 Effective Date: September 1, 2026\n1. Service Commitments\nAether Wireless guarantees the following minimum service levels for enterprise subscribers:\nMetric Target Measurement Period\nNetwork Uptime 99.95% Monthly\nAverage Latency < 15ms Monthly\nDownload Speed ≥ 500 Mbps (Premier) Monthly\nIncident Response < 1 hour Per incident\n2. Service Credits\nIf Aether Wireless fails to meet the guaranteed SLA metrics, subscribers are eligible for service credits:\nUptime below 99.95% but above 99.0%: 5% monthly credit\nUptime below 99.0%: 15% monthly credit\nUptime below 95.0%: 30% monthly credit + escalation to executive review\n3. Scheduled Maintenance\nPlanned maintenance windows are communicated at least 72 hours in advance and are scheduled during off-peak hours\n(2:00 AM - 5:00 AM local time) to minimize subscriber impact.\n4. Exclusions\nSLA guarantees do not apply to disruptions caused by force majeure events, subscri"
+  },
+  {
+    "filename": "network_service_policy.pdf",
+    "text": "e and are scheduled during off-peak hours\n(2:00 AM - 5:00 AM local time) to minimize subscriber impact.\n4. Exclusions\nSLA guarantees do not apply to disruptions caused by force majeure events, subscriber equipment failure, or third-party\ninfrastructure beyond Aether Wireless's control.\nAPPROVED BY: LEGAL & REGULATORY AFFAIRS APPROVED BY: CHIEF NETWORK OFFICER (CNO)\n• \n• \n• \nAether Wireless • Corporate Compliance & Policies Page 1 of 1"
+  },
+  {
+    "filename": "new_line_activation_process.pdf",
+    "text": "AETHER WIRELESS\nNew Line Activation Process\nDocument ID: POL-AETH-ACT-001 Effective Date: September 1, 2026\n1. Activation Overview\nNew line activations are available online, in-store, or via phone. The subscriber must select a compatible device and\napproved plan for the new line.\n2. Required Information\nIdentification: Valid government-issued photo ID for the account holder.\nCredit Check: A soft credit check may be required for postpaid lines.\nCompatibility: Device must support Aether Wireless network bands (5G/6G).\n3. Activation Fees\nA one-time activation fee of $35 applies per new line. Fees are waived during select promotional periods.\n4. Activation Timeline\neSIM activations typically complete within minutes. Physical SIM activations complete upon delivery and SIM registration.\nNumber porting is handled separately per the Port-In Policy.\nAPPROVED BY: LEGAL & REGULATORY AFFAIRS APPROVED BY: CHIEF NETWORK OFFICER (CNO)\n• \n• \n• \nAether Wireless • Corporate Compliance & Policies Page 1 "
+  },
+  {
+    "filename": "new_line_activation_process.pdf",
+    "text": "orting is handled separately per the Port-In Policy.\nAPPROVED BY: LEGAL & REGULATORY AFFAIRS APPROVED BY: CHIEF NETWORK OFFICER (CNO)\n• \n• \n• \nAether Wireless • Corporate Compliance & Policies Page 1 of 1"
+  },
+  {
+    "filename": "payment_eligibility_terms.pdf",
+    "text": "AETHER WIRELESS\nPayment Eligibility Terms\nDocument ID: POL-AETH-PAY-001 Effective Date: September 1, 2026\n1. Payment Methods\nAether  Wireless  accepts  major  credit  cards,  debit  cards,  bank  transfers,  and  ACH  auto-pay.  PayAsYouGo  prepaid\nvouchers are also redeemable online.\n2. Auto-Pay Discounts\nSubscribers enrolled in auto-pay with a valid bank account or credit card may qualify for a monthly discount of up to $10\nper line, depending on the plan tier.\n3. Eligibility Requirements\nAccount must be in good standing with no suspended services.\nNo outstanding balances from prior billing cycles.\nPayment method must be verified and valid.\n4. Payment Terms\nPostpaid accounts are billed in arrears on a monthly cycle. Payment is due 21 days after statement issuance as defined\nin the Billing & Invoice Policy.\n5. Failed Payments\nFailed payment attempts may incur a $5.00 returned payment fee. Repeated failures may result in service restriction\npending account settlement.\nAPPROVED BY: LEGA"
+  },
+  {
+    "filename": "payment_eligibility_terms.pdf",
+    "text": "g & Invoice Policy.\n5. Failed Payments\nFailed payment attempts may incur a $5.00 returned payment fee. Repeated failures may result in service restriction\npending account settlement.\nAPPROVED BY: LEGAL & REGULATORY AFFAIRS APPROVED BY: CHIEF NETWORK OFFICER (CNO)\n• \n• \n• \nAether Wireless • Corporate Compliance & Policies Page 1 of 1"
+  },
+  {
+    "filename": "plan_upgrade_policy.pdf",
+    "text": "AETHER WIRELESS\nPlan Upgrade Policy\nDocument ID: POL-AETH-PLAN-001 Effective Date: September 1, 2026\n1. Eligibility\nSubscribers may upgrade their plan at any time provided the account is in good standing. Plan upgrades are effective\nimmediately or at the start of the next billing cycle, per subscriber preference.\n2. Pro-Rated Adjustments\nMid-cycle upgrades are pro-rated, with the subscriber charged the difference between the old and new plan rates for the\nremainder of the current billing cycle.\n3. Data & Feature Availability\nUpgraded plans unlock additional data allowances, roaming, and features (e.g., tethering, premium QoS) immediately\nupon activation.\n4. Downgrade Restrictions\nDowngrades take effect at the start of the next billing cycle and may require forfeiture of promotional benefits associated\nwith the current plan.\n5. Promotional Lock-In\nPlans acquired under a promotional rate may have a lock-in period. Upgrading away from such plans may forfeit\nremaining promotional benefits."
+  },
+  {
+    "filename": "plan_upgrade_policy.pdf",
+    "text": "s associated\nwith the current plan.\n5. Promotional Lock-In\nPlans acquired under a promotional rate may have a lock-in period. Upgrading away from such plans may forfeit\nremaining promotional benefits.\nAPPROVED BY: LEGAL & REGULATORY AFFAIRS APPROVED BY: CHIEF NETWORK OFFICER (CNO)\nAether Wireless • Corporate Compliance & Policies Page 1 of 1"
+  },
+  {
+    "filename": "port_in_policy.pdf",
+    "text": "AETHER WIRELESS\nPort-In Policy\nDocument ID: POL-AETH-PORT-001 Effective Date: September 1, 2026\n1. Overview\nNumber porting allows subscribers to transfer their existing phone number from another carrier to Aether Wireless while\nretaining the same number.\n2. Eligibility Requirements\nThe number must be active and in good standing with the current carrier.\nThe subscriber must provide the correct account number and PIN/transfer PIN.\nNo pending port-block requests on the number.\n3. Porting Timeline\nPorts typically complete within 1-3 business days. Wireless-to-wireless ports may complete within hours, while landline\nports may take up to 7 days.\n4. Service Coverage During Port\nA temporary number is assigned until the port completes. Service on the temporary number is seamless, and the ported\nnumber replaces it upon completion.\n5. Failed Ports\nIf a port fails due to incorrect information, the subscriber is notified and may resubmit with corrected details. Repeated\nfailures may require contact"
+  },
+  {
+    "filename": "port_in_policy.pdf",
+    "text": "ber replaces it upon completion.\n5. Failed Ports\nIf a port fails due to incorrect information, the subscriber is notified and may resubmit with corrected details. Repeated\nfailures may require contact with the releasing carrier.\nAPPROVED BY: LEGAL & REGULATORY AFFAIRS APPROVED BY: CHIEF NETWORK OFFICER (CNO)\n• \n• \n• \nAether Wireless • Corporate Compliance & Policies Page 1 of 1"
+  },
+  {
+    "filename": "postpaid_plan_guidelines.pdf",
+    "text": "AETHER WIRELESS\nPostpaid Plan Guidelines\nDocument ID: POL-AETH-POST-001 Effective Date: September 1, 2026\n1. Overview\nPostpaid plans provide monthly service billed in arrears after usage. They offer the flexibility of unlimited data tiers, device\nfinancing, and premium features.\n2. Credit Requirements\nPostpaid enrollments require a credit assessment. Approval and deposit requirements are determined based on the\napplicant's credit profile.\n3. Billing\nPostpaid accounts are billed on a monthly cycle. Payment is due 21 days from the statement date per the Billing &\nInvoice Policy.\n4. Device Financing\nEligible subscribers may finance devices over 12, 24, or 36 months at 0% APR subject to credit approval and plan\nqualification.\n5. Service Suspension\nAccounts past due by more than 30 days may be subject to service suspension. Restoration requires full payment of the\noutstanding balance plus any applicable reconnection fee.\nAPPROVED BY: LEGAL & REGULATORY AFFAIRS APPROVED BY: CHIEF NETWORK OFF"
+  },
+  {
+    "filename": "postpaid_plan_guidelines.pdf",
+    "text": "subject to service suspension. Restoration requires full payment of the\noutstanding balance plus any applicable reconnection fee.\nAPPROVED BY: LEGAL & REGULATORY AFFAIRS APPROVED BY: CHIEF NETWORK OFFICER (CNO)\nAether Wireless • Corporate Compliance & Policies Page 1 of 1"
+  },
+  {
+    "filename": "privacy_data_policy.pdf",
+    "text": "AETHER WIRELESS\nPrivacy & Data Protection Policy\nDocument ID: POL-AETH-PRIV-001 Effective Date: September 1, 2026\n1. Data Collection & Usage\nAether Wireless collects personal and usage data solely for the purpose of delivering and improving our services. We\nadhere to strict data minimization principles in compliance with applicable privacy regulations including GDPR and CCPA.\n2. Data Sharing & Third Parties\nWe do not sell subscriber data to third parties. Data may be shared with trusted service providers solely for network\noperations, billing, and customer support, under strict data processing agreements.\n3. Data Retention\nSubscriber data is retained only for the duration of the service relationship and for a period of 12 months following\naccount closure, unless longer retention is required by law.\n4. Subscriber Rights\nSubscribers have the right to access, correct, port, and request deletion of their personal data. Requests should be\ndirected to privacy@aetherwireless.com.\n5. Security "
+  },
+  {
+    "filename": "privacy_data_policy.pdf",
+    "text": "d by law.\n4. Subscriber Rights\nSubscribers have the right to access, correct, port, and request deletion of their personal data. Requests should be\ndirected to privacy@aetherwireless.com.\n5. Security Measures\nAether Wireless employs industry-standard encryption (AES-256), multi-factor authentication, and continuous security\nmonitoring to protect subscriber data against unauthorized access.\nAPPROVED BY: LEGAL & REGULATORY AFFAIRS APPROVED BY: CHIEF NETWORK OFFICER (CNO)\nAether Wireless • Corporate Compliance & Policies Page 1 of 1"
+  },
+  {
+    "filename": "promotions_eligibility_terms.pdf",
+    "text": "AETHER WIRELESS\nPromotions Eligibility Terms\nDocument ID: POL-AETH-PROMO-001 Effective Date: September 1, 2026\n1. General Eligibility\nPromotional offers are available to new and existing subscribers subject to meeting the specific eligibility criteria of each\npromotion. Offers may not be combined unless expressly stated.\n2. New Customer Offers\nNew customer promotions require a new line activation and, where applicable, a qualifying trade-in device. Offer details,\nduration, and credits are disclosed at the point of sale.\n3. Existing Customer Offers\nExisting customer promotions may require a plan upgrade, device upgrade, or add-a-line activation. Credits are applied\nmonthly over the promotion term.\n4. Promotional Credits\nMonthly promotional credits are applied to the bill and appear as line-item discounts. Credits cease if the qualifying plan\nor device is changed before the term ends.\n5. Expiration & Terms\nAll promotions are subject to availability and may be withdrawn at any time. Full "
+  },
+  {
+    "filename": "promotions_eligibility_terms.pdf",
+    "text": "item discounts. Credits cease if the qualifying plan\nor device is changed before the term ends.\n5. Expiration & Terms\nAll promotions are subject to availability and may be withdrawn at any time. Full terms and conditions are available on the\npromotional offer page at the time of purchase.\nAPPROVED BY: LEGAL & REGULATORY AFFAIRS APPROVED BY: CHIEF NETWORK OFFICER (CNO)\nAether Wireless • Corporate Compliance & Policies Page 1 of 1"
+  },
+  {
+    "filename": "returns_refunds_policy.pdf",
+    "text": "AETHER WIRELESS\nReturns & Refunds Policy\nDocument ID: POL-AETH-RET-001 Effective Date: September 1, 2026\n1. Return Window\nDevices and accessories purchased from Aether Wireless may be returned within 14 days of the original purchase date\nfor a full refund, subject to the terms below.\n2. Return Conditions\nDevice must be undamaged and fully functional.\nOriginal packaging, accessories, and documentation must be included.\nNo visible signs of wear or unauthorized modifications.\n3. Restocking Fee\nA restocking fee of up to $45 may apply to returns of devices that have been activated or show signs of use beyond initial\ninspection.\n4. Refund Processing\nRefunds are processed within 5-10 business days of receiving and inspecting the returned item. Refunds are issued to\nthe original payment method.\n5. Non-Returnable Items\nDownloaded content, eSIM redemptions, and pre-loaded service credits are non-returnable and non-refundable once\nactivated.\nAPPROVED BY: LEGAL & REGULATORY AFFAIRS APPROVED BY: CH"
+  },
+  {
+    "filename": "returns_refunds_policy.pdf",
+    "text": " Non-Returnable Items\nDownloaded content, eSIM redemptions, and pre-loaded service credits are non-returnable and non-refundable once\nactivated.\nAPPROVED BY: LEGAL & REGULATORY AFFAIRS APPROVED BY: CHIEF NETWORK OFFICER (CNO)\n• \n• \n• \nAether Wireless • Corporate Compliance & Policies Page 1 of 1"
+  }
+]
