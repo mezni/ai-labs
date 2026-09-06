@@ -2,6 +2,8 @@
 
 Mini-projects to learn AI, one step at a time. Each project is self-contained and builds on the previous ones.
 
+> **Aether Wireless** — a sleek, cloud-native, next-gen telecom provider. All projects below will be themed around this branding.
+
 | # | Project | Description | Stack |
 |---|---------|-------------|-------|
 | 01 | simple-rag | A simple Retrieval-Augmented Generation system that chunks documents, indexes them with FAISS, and answers questions using an LLM | Python, Streamlit, FAISS |
