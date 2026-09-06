@@ -19,11 +19,14 @@ dev = [
 ]
 
 [project.scripts]
-catalyst = "blueprint.main:main"
+catalyst = "main:main"
 
 [build-system]
-requires = ["uv_build>=0.12.3,<0.13.0"]
-build-backend = "uv_build"
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["main"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
