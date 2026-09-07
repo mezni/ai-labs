@@ -103,6 +103,29 @@ def test_generate_kwargs_override_payload(env_openrouter, patch_llm_config):
     client.close()
 
 
+def test_generate_with_usage_returns_answer_and_usage(env_openrouter, patch_llm_config):
+    payload = {
+        "choices": [{"message": {"content": "OK"}}],
+        "usage": {
+            "prompt_tokens": 15,
+            "completion_tokens": 5,
+            "total_tokens": 20,
+        },
+    }
+    client = LLMClient(transport=_mock_transport(payload=payload))
+    answer, usage = client.generate_with_usage([{"role": "user", "content": "ping"}])
+    assert answer == "OK"
+    assert usage == {"prompt_tokens": 15, "completion_tokens": 5, "total_tokens": 20}
+    client.close()
+
+
+def test_generate_with_usage_missing_usage_returns_empty(env_openrouter, patch_llm_config):
+    client = LLMClient(transport=_mock_transport(payload={"choices": [{"message": {"content": "x"}}]}))
+    _, usage = client.generate_with_usage([{"role": "user", "content": "ping"}])
+    assert usage == {"prompt_tokens": None, "completion_tokens": None, "total_tokens": None}
+    client.close()
+
+
 def test_generate_raises_on_http_error(env_openrouter, patch_llm_config):
     client = LLMClient(transport=_mock_transport(status=429))
     with pytest.raises(httpx.HTTPStatusError):

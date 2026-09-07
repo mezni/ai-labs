@@ -1,6 +1,6 @@
 """OpenRouter chat client, configured from config/llm_config.yaml."""
 import os
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import httpx
 from dotenv import load_dotenv
@@ -55,6 +55,13 @@ class LLMClient:
 
     def generate(self, messages: List[Dict[str, str]], **kwargs) -> str:
         """Send the chat messages to the LLM and return the reply."""
+        answer, _ = self.generate_with_usage(messages, **kwargs)
+        return answer
+
+    def generate_with_usage(
+        self, messages: List[Dict[str, str]], **kwargs
+    ) -> Tuple[str, Dict[str, Any]]:
+        """Generate a reply and also return token usage (prompt/completion/total)."""
         logger.debug("Sending %d messages to %s", len(messages), self.model)
         response = self._client.post(
             self.url,
@@ -67,7 +74,13 @@ class LLMClient:
         )
         response.raise_for_status()
         data = response.json()
-        return data["choices"][0]["message"]["content"]
+        answer = data["choices"][0]["message"]["content"]
+        usage = data.get("usage", {})
+        return answer, {
+            "prompt_tokens": usage.get("prompt_tokens"),
+            "completion_tokens": usage.get("completion_tokens"),
+            "total_tokens": usage.get("total_tokens"),
+        }
 
     def classify(self, query: str, system_prompt: str) -> str:
         """Classify user query using the chat model."""

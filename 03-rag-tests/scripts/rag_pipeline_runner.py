@@ -26,6 +26,7 @@ from src.knowledge.knowledge_base import KnowledgeBase
 from src.knowledge.retriever import Retriever
 from src.llm.llm_client import LLMClient
 from src.llm.prompt_manager import PromptManager
+from src.observability import RequestLogger
 from src.utils import get_logger
 
 logger = get_logger(__name__)
@@ -124,17 +125,38 @@ def main() -> None:
     if not context:
         raise SystemExit("No context retrieved for the query; cannot generate an answer.")
 
-    messages = build_messages(PromptManager(), args.query, context, args.prompt_version)
-    answer = LLMClient().generate(messages)
+    with RequestLogger() as logger_rec:
+        logger_rec.start(question=args.query)
+        logger_rec.set_retrieval(context)
 
-    print("\n" + "=" * 70)
-    print(f"Q: {args.query}")
-    print("-" * 70)
-    print(answer)
-    print("-" * 70)
-    print("Sources:")
-    for chunk in context:
-        print(f"  - {chunk['source']} (score={chunk['score']:.3f})")
+        prompt_manager = PromptManager()
+        messages = build_messages(prompt_manager, args.query, context, args.prompt_version)
+        llm_client = LLMClient()
+        logger_rec.set_prompt(messages)
+        logger_rec.set_model(llm_client.model)
+
+        try:
+            answer, usage = llm_client.generate_with_usage(messages)
+            logger_rec.finish(
+                answer=answer,
+                usage=usage,
+                sources=sorted({chunk["source"] for chunk in context}),
+            )
+        except Exception as exc:
+            logger_rec.record_error(exc)
+            logger_rec.finish(answer="", sources=sorted({c["source"] for c in context}))
+            raise
+        finally:
+            llm_client.close()
+
+        print("\n" + "=" * 70)
+        print(f"Q: {args.query}")
+        print("-" * 70)
+        print(answer)
+        print("-" * 70)
+        print("Sources:")
+        for chunk in context:
+            print(f"  - {chunk['source']} (score={chunk['score']:.3f})")
     kb.close()
 
 

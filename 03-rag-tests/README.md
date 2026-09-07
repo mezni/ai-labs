@@ -91,3 +91,49 @@ uv run python scripts/eval_generation.py --judge --json-out results/generation.j
 uv run pytest                           # unit tests (offline)
 RUN_INTEGRATION=1 uv run pytest -m integration   # live OpenRouter tests
 ```
+
+## Observability
+
+Every pipeline request is recorded automatically (runner + Streamlit app) by
+`src/observability.py::RequestLogger` to `data/logs/rag_requests.jsonl`, with a
+human-readable view in `data/logs/rag_requests.log`. Each record captures:
+
+- `request_id` & `timestamp`
+- `question`
+- `retrieved_chunks` (id, source, score) and `retrieval_scores`
+- `prompt` (the messages sent to the model)
+- `model`
+- `latency` (seconds)
+- `usage` (prompt/completion/total tokens from the API response)
+- `answer`
+- `sources` (deduplicated source files)
+- `error` (set when generation fails)
+
+```text
+REQUEST 0318e833d4eb
+
+Question:
+What is RAG?
+
+Retrieval:
+  chunk_003  score=0.910
+  chunk_008  score=0.840
+
+Model:
+gpt-...
+
+Latency:
+1.43s
+
+Token usage:
+  prompt_tokens=100 | completion_tokens=40 | total_tokens=140
+
+Answer:
+...
+
+Sources:
+example.txt
+```
+
+The JSONL format is machine-readable for dashboards/aggregation; the `.log` view
+is for quick debugging.

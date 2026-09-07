@@ -18,6 +18,7 @@ from src.knowledge.knowledge_base import KnowledgeBase
 from src.knowledge.retriever import Retriever
 from src.llm.llm_client import LLMClient
 from src.llm.prompt_manager import PromptManager
+from src.observability import RequestLogger
 from src.utils import get_logger
 
 logger = get_logger(__name__)
@@ -122,7 +123,24 @@ if query:
         with st.spinner("Generating answer..."):
             try:
                 messages = build_messages(query, context, prompt_version)
-                answer = LLMClient().generate(messages)
+                with RequestLogger() as logger:
+                    logger.start(question=query)
+                    logger.set_retrieval(context)
+                    logger.set_prompt(messages)
+                    client = LLMClient()
+                    logger.set_model(client.model)
+                    try:
+                        answer, usage = client.generate_with_usage(messages)
+                    except Exception as exc:
+                        logger.record_error(exc)
+                        raise
+                    finally:
+                        client.close()
+                    logger.finish(
+                        answer=answer,
+                        usage=usage,
+                        sources=sorted({c["source"] for c in context}),
+                    )
             except RuntimeError as exc:
                 st.error(f"Generation failed: {exc}")
                 st.stop()
