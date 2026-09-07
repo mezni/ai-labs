@@ -55,3 +55,41 @@ def patch_llm_config(monkeypatch, llm_config):
 
     monkeypatch.setattr(llm_client, "load_config", lambda: llm_config)
     return llm_config
+
+
+@pytest.fixture
+def patch_knowledge_config(monkeypatch, llm_config):
+    """Monkeypatch the knowledge package's load_config to the fixture config."""
+    import src.knowledge.embeddings as embeddings
+
+    monkeypatch.setattr(embeddings, "load_config", lambda: llm_config)
+    return llm_config
+
+
+class FakeEmbedder:
+    """Deterministic embedder: projects text onto a small vector by topic."""
+
+    @staticmethod
+    def _vec(text: str) -> list[float]:
+        low = text.lower()
+        if "access" in low:
+            return [0.0, 1.0]
+        if "backup" in low:
+            return [1.0, 0.0]
+        if "leave" in low:
+            return [0.5, 0.5]
+        return [0.3, 0.3]
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        return [self._vec(t) for t in texts]
+
+    def embed_text(self, text: str) -> list[float]:
+        return self._vec(text)
+
+    def close(self) -> None:
+        pass
+
+
+@pytest.fixture
+def fake_embedder() -> FakeEmbedder:
+    return FakeEmbedder()
