@@ -20,5 +20,18 @@ dependencies = [
 rag-hybrid = "app.main:main"
 
 [build-system]
-requires = ["uv_build>=0.12.3,<0.13.0"]
-build-backend = "uv_build"
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = [
+    "app",
+    "config",
+    "src",
+    "src.knowledge",
+    "src.llm",
+    "src.utils",
+]
+
+[tool.setuptools.package-data]
+config = ["*.yaml"]

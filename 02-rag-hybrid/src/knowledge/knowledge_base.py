@@ -52,6 +52,8 @@ class KnowledgeBase:
         self.chunk_size = chunk_size
         self.overlap = overlap
         self.chunks: list[Chunk] = []
+        self._client: Any = None
+        self._client_persist_dir: Path | None = None
         self.collection = self._open_collection(self.persist_dir)
 
     def _open_collection(
@@ -59,16 +61,19 @@ class KnowledgeBase:
         persist_dir: str | Path,
         reset: bool = False,
     ) -> Any:
-        client = chromadb.PersistentClient(path=str(persist_dir))
+        persist = Path(persist_dir)
+        if self._client is None or persist != self._client_persist_dir:
+            self._client = chromadb.PersistentClient(path=str(persist))
+            self._client_persist_dir = persist
         if reset:
-            for existing in client.list_collections():
+            for existing in self._client.list_collections():
                 logger.info("Deleting existing collection %r", existing.name)
-                client.delete_collection(existing.name)
-        collection = client.get_or_create_collection(
+                self._client.delete_collection(existing.name)
+        collection = self._client.get_or_create_collection(
             name=self.collection_name,
             metadata={"hnsw:space": "cosine"},
         )
-        logger.debug("Opened collection %r at %s", self.collection_name, persist_dir)
+        logger.debug("Opened collection %r at %s", self.collection_name, persist)
         return collection
 
     def reset_collection(self) -> None:

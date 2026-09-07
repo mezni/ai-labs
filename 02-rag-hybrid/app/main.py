@@ -73,11 +73,17 @@ def answer(
     retriever: Retriever,
     llm_client: LLMClient,
     prompt_manager: PromptManager,
+    context: list[Chunk] | None = None,
     top_k: int = 5,
     prompt_version: str | None = None,
 ) -> str:
-    """Run the full RAG pipeline: retrieve context and generate a grounded answer."""
-    context = retriever.retrieve(question, top_k=top_k)
+    """Run the full RAG pipeline: retrieve context and generate a grounded answer.
+
+    Already-retrieved `context` chunks can be passed in to avoid a second
+    retrieval (and a second dense-embed call) per question.
+    """
+    if context is None:
+        context = retriever.retrieve(question, top_k=top_k)
     logger.info("Retrieved %d context chunks for answer generation", len(context))
     messages = prompt_manager.build_generation_prompt(
         question, context, version=prompt_version
@@ -96,9 +102,11 @@ def _parse_args(argv: list[str]) -> tuple[bool, str, str | None]:
         if arg == "--reset":
             reset = True
         elif arg == "--prompt-version":
-            if i + 1 < len(argv):
+            if i + 1 < len(argv) and not argv[i + 1].startswith("--"):
                 version = argv[i + 1]
                 i += 1
+            else:
+                logger.warning("--prompt-version given without a value; ignoring")
         else:
             question_parts.append(arg)
         i += 1
@@ -133,6 +141,7 @@ def main() -> None:
                 retriever,
                 llm_client,
                 prompt_manager,
+                context=hits,
                 prompt_version=prompt_version,
             )
         )

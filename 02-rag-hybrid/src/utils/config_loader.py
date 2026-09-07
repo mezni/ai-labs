@@ -1,4 +1,5 @@
 """Configuration loader for YAML files."""
+from functools import lru_cache
 from pathlib import Path
 
 import yaml
@@ -18,11 +19,13 @@ def load_yaml_config(config_path: str) -> dict:
         return yaml.safe_load(f)
 
 
+@lru_cache(maxsize=None)
 def load_all_configs(config_dir: str = "config") -> dict[str, dict]:
     """Load available YAML config files from the config/ directory.
 
     `llm` is the active backend config; other configs are loaded when their
     YAML file exists. Optional-missing files are logged at debug level only.
+    Results are cached for the process lifetime.
     """
     config_dir = Path(config_dir)
     available: dict[str, dict] = {}

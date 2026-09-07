@@ -47,14 +47,10 @@ class PromptManager:
     `default_version`.
     """
 
-    def __init__(self, system_prompt: str | None = None) -> None:
+    def __init__(self) -> None:
         configs = load_all_configs()
         config_prompts = configs.get("prompts", {}).get("prompts", {})
         self._prompts = config_prompts
-
-        default = self.get_prompt("retrieval_query")
-        self.system_prompt = system_prompt or default["system"]
-        self.user_template = default["user_template"]
 
     def _resolve_version(self, name: str, version: str | None) -> str:
         prompt = self._prompts.get(name)
@@ -96,7 +92,9 @@ class PromptManager:
             entry = prompt["versions"][resolved]
         return {
             "system": entry.get("system", ""),
-            "user_template": entry.get("user_template", ""),
+            "user_template": entry.get("user_template") or prompt.get(
+                "user_template", ""
+            ),
             "version": resolved,
         }
 
