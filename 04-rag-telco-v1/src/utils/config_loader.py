@@ -14,7 +14,8 @@ def load_yaml_config(config_path: str) -> dict:
         raise FileNotFoundError(f"Config file not found: {config_path}")
 
     with open(path, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
+        loaded = yaml.safe_load(f)
+        return loaded if isinstance(loaded, dict) else {}
 
 
 def load_all_configs(config_dir: str = "config") -> dict[str, dict]:
@@ -38,6 +39,6 @@ def load_all_configs(config_dir: str = "config") -> dict[str, dict]:
     return available
 
 
-def load_config() -> dict:
-    """Load the main LLM configuration file (config/llm_config.yaml)."""
-    return load_yaml_config("config/llm_config.yaml")
+def load_config(config_path: str = "config/llm_config.yaml") -> dict:
+    """Load a YAML configuration file, defaulting to config/llm_config.yaml."""
+    return load_yaml_config(config_path)

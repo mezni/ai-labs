@@ -1,94 +1,87 @@
-"""OpenRouter chat client, configured from config/llm_config.yaml."""
-import os
-from typing import Any, Dict, List, Optional, Tuple
-
-import httpx
-from dotenv import load_dotenv
+"""Prompt management and template loading."""
+from typing import Any
 
 from src.utils import get_logger, load_config
 
-load_dotenv()
-
 logger = get_logger(__name__)
 
+PROMPTS_PATH = "config/prompts.yaml"
 
-class LLMClient:
-    """Generate responses by calling the LLM configured in llm_config.yaml.
 
-    Chat, embedding, and reranker settings all come from config/llm_config.yaml.
-    Requests are routed through the configured OpenRouter-compatible endpoints.
+class PromptManager:
+    """Manages multi-version prompt templates.
+
+    Templates live in config/prompts.yaml as a ``prompts`` dict keyed by prompt
+    name. Each prompt entry supports:
+
+      default_version: name of the active version
+      user_template:   template with {placeholders}, e.g. CONTEXT/{context}
+      versions:
+        v1:            per-version settings (e.g. system prompt)
+
+    Versions can override any top-level field, so version-specific system
+    prompts (or even user templates) are merged over the shared defaults.
     """
 
-    def __init__(
-        self,
-        model: Optional[str] = None,
-        transport: Optional[httpx.BaseTransport] = None,
-    ):
-        config = load_config()
-        chat_config = config.get("models", {}).get("chat", {})
-        api_config = config.get("api", {})
-
-        self.model = model or chat_config.get("model", "openai/gpt-4o-mini")
-        self.temperature = chat_config.get("temperature", 0.3)
-        self.max_tokens = chat_config.get("max_tokens", 4096)
-        self.url = chat_config.get("openrouter_url", "https://openrouter.ai/api/v1/chat/completions")
-        timeout = chat_config.get("timeout_seconds", api_config.get("timeout", 120))
-
-        api_key = os.getenv("OPENROUTER_API_KEY")
-        if not api_key:
-            raise RuntimeError("OPENROUTER_API_KEY is not set")
-
-        self._client = httpx.Client(
-            transport=transport,
-            timeout=timeout,
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-        )
+    def __init__(self, prompts_path: str = PROMPTS_PATH) -> None:
+        config = load_config(prompts_path)
+        self.prompts: dict[str, Any] = config.get("prompts", {})
         logger.debug(
-            "LLMClient ready (model=%s, max_tokens=%d, temperature=%.2f)",
-            self.model,
-            self.max_tokens,
-            self.temperature,
+            "PromptManager ready (%d prompts)", len(self.prompts)
         )
 
-    def generate(self, messages: List[Dict[str, str]], **kwargs) -> str:
-        """Send the chat messages to the LLM and return the reply."""
-        answer, _ = self.generate_with_usage(messages, **kwargs)
-        return answer
+    def get_prompt(self, prompt_name: str, version: str | None = None) -> dict[str, Any]:
+        """Get prompt by name, resolved to a specific (or default) version.
 
-    def generate_with_usage(
-        self, messages: List[Dict[str, str]], **kwargs
-    ) -> Tuple[str, Dict[str, Any]]:
-        """Generate a reply and also return token usage (prompt/completion/total)."""
-        logger.debug("Sending %d messages to %s", len(messages), self.model)
-        response = self._client.post(
-            self.url,
-            json={
-                "model": kwargs.get("model", self.model),
-                "messages": messages,
-                "max_tokens": kwargs.get("max_tokens", self.max_tokens),
-                "temperature": kwargs.get("temperature", self.temperature),
-            },
-        )
-        response.raise_for_status()
-        data = response.json()
-        answer = data["choices"][0]["message"]["content"]
-        usage = data.get("usage", {})
-        return answer, {
-            "prompt_tokens": usage.get("prompt_tokens"),
-            "completion_tokens": usage.get("completion_tokens"),
-            "total_tokens": usage.get("total_tokens"),
+        Falls back to ``default_version``, then to the first available version
+        if the requested one is missing. Returns ``{}`` for unknown prompts.
+        """
+        entry = self.prompts.get(prompt_name)
+        if not entry:
+            logger.warning("Unknown prompt %r", prompt_name)
+            return {}
+
+        versions = entry.get("versions", {}) or {}
+        requested = version or entry.get("default_version")
+        if requested not in versions:
+            if version is not None:
+                logger.warning(
+                    "Prompt %r has no version %r; using default",
+                    prompt_name,
+                    version,
+                )
+            requested = entry.get("default_version") or next(iter(versions), None)
+        if requested is None or requested not in versions:
+            logger.warning("Prompt %r has no usable versions", prompt_name)
+            return {}
+
+        merged: dict[str, Any] = {
+            "version": requested,
+            "user_template": entry.get("user_template", ""),
         }
+        for key, value in entry.items():
+            if key not in ("versions", "default_version", "name"):
+                merged.setdefault(key, value)
+        merged.update(versions[requested])
+        merged.setdefault("user_template", entry.get("user_template", ""))
+        return merged
 
-    def classify(self, query: str, system_prompt: str) -> str:
-        """Classify user query using the chat model."""
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": query},
-        ]
-        return self.generate(messages)
+    def list_versions(self, prompt_name: str) -> list[str]:
+        """Return the available versions for a prompt (may be empty)."""
+        entry = self.prompts.get(prompt_name, {})
+        versions = entry.get("versions", {})
+        return list(versions.keys()) or (
+            [entry["default_version"]] if entry.get("default_version") else []
+        )
 
-    def close(self) -> None:
-        self._client.close()
+    def format_prompt(self, template: str, **kwargs) -> str:
+        """Format prompt template with variables.
+
+        Missing placeholders are left untouched (with a warning) instead of
+        raising, so an incomplete context never crashes the caller.
+        """
+        try:
+            return template.format(**kwargs)
+        except (KeyError, IndexError) as exc:
+            logger.warning("Prompt formatting failed (%s); returning unformatted", exc)
+            return template

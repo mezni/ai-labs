@@ -1,9 +1,21 @@
+providers:
+  openrouter:
+    type: openrouter
+
+  openai:
+    type: openai
+
 models:
-  # Primary chat LLM used for copilot rationale / conversational responses.
-  chat:
+  generation:
     provider: openrouter
-    openrouter_url: https://openrouter.ai/api/v1/chat/completions
-    model: minimax/MiniMax-M2
-    max_tokens: 4096
-    temperature: 0.3
-    timeout_seconds: 120
+    model: minimax/minimax-m3
+    temperature: 0.2
+    max_tokens: 1000
+
+  embedding:
+    provider: openai
+    model: text-embedding-3-small
+
+rag:
+  top_k: 5
+  similarity_threshold: 0.70

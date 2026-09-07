@@ -1,6 +1,6 @@
 """OpenRouter chat client, configured from config/llm_config.yaml."""
 import os
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import httpx
 from dotenv import load_dotenv
@@ -21,8 +21,8 @@ class LLMClient:
 
     def __init__(
         self,
-        model: Optional[str] = None,
-        transport: Optional[httpx.BaseTransport] = None,
+        model: str | None = None,
+        transport: httpx.BaseTransport | None = None,
     ):
         config = load_config()
         chat_config = config.get("models", {}).get("chat", {})
@@ -53,14 +53,14 @@ class LLMClient:
             self.temperature,
         )
 
-    def generate(self, messages: List[Dict[str, str]], **kwargs) -> str:
+    def generate(self, messages: list[dict[str, str]], **kwargs) -> str:
         """Send the chat messages to the LLM and return the reply."""
         answer, _ = self.generate_with_usage(messages, **kwargs)
         return answer
 
     def generate_with_usage(
-        self, messages: List[Dict[str, str]], **kwargs
-    ) -> Tuple[str, Dict[str, Any]]:
+        self, messages: list[dict[str, str]], **kwargs
+    ) -> tuple[str, dict[str, Any]]:
         """Generate a reply and also return token usage (prompt/completion/total)."""
         logger.debug("Sending %d messages to %s", len(messages), self.model)
         response = self._client.post(
