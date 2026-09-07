@@ -9,8 +9,43 @@ End-to-end Retrieval-Augmented Generation (RAG) copilot for **Aether Wireless** 
 - **Retrieval** — hybrid BM25 (sparse) + FAISS (dense) fused with Reciprocal Rank Fusion; optional cross-encoder reranker
 - **Prompts** — versioned templates in `config/prompts.yaml`
 - **Guardrails** — input, retrieval, and generation-grounding checks in `src/guardrails.py`
+- **Memory** — conversation history + query rewriting in `src/memory.py`
 - **Observability** — per-request JSONL logs in `src/observability.py`
 - **UI** — Streamlit chat app
+
+## Pipeline
+
+One request flows through guardrails, conversational memory, retrieval, and
+generation:
+
+```
+                    ┌───────────────────────────┐
+   User question ──▶│ Input guardrail            │  reject empty question
+                    └───────────┬───────────────┘
+                                ▼
+                    ┌───────────────────────────┐
+                    │ Query processing          │  rewrite against history  (memory)
+                    │  (Conversation history)   │  → standalone query
+                    └───────────┬───────────────┘
+                                ▼
+                    ┌───────────────────────────┐
+                    │ Retriever (BM25 + FAISS)  │  hybrid RRF, optional rerank
+                    └───────────┬───────────────┘
+                                ▼
+                    ┌───────────────────────────┐
+                    │ Retrieval guardrail        │  low similarity → "No relevant information was found."
+                    └───────────┬───────────────┘
+                                ▼
+                    ┌───────────────────────────┐
+                    │ LLM (history + context)   │  grounded generation (RAG)
+                    └───────────┬───────────────┘
+                                ▼
+                    ┌───────────────────────────┐
+                    │ Grounding guardrail        │  ungrounded answer → refused
+                    └───────────┬───────────────┘
+                                ▼
+                          Answer  ──▶  Observability log (data/logs)
+```
 
 ```
 src/
@@ -163,7 +198,14 @@ human-readable view in `data/logs/rag_requests.log`. Each record captures:
 REQUEST 0318e833d4eb
 
 Question:
-What is RAG?
+How much is it?
+
+Rewritten query:
+How much does a 5 GB Data Boost cost?
+
+Conversation history:
+User: Tell me about data boosts.
+Assistant: Data boosts add monthly data.
 
 Retrieval:
   chunk_003  score=0.910
@@ -179,10 +221,15 @@ Token usage:
   prompt_tokens=100 | completion_tokens=40 | total_tokens=140
 
 Answer:
-...
+A 5 GB Data Boost costs $5.00 per month.
 
 Sources:
-example.txt
+pricing/data-boosts.md
+
+Guardrails:
+  input: passed
+  retrieval: passed
+  generation: passed
 ```
 
 The JSONL format is machine-readable for dashboards/aggregation; the `.log` view
