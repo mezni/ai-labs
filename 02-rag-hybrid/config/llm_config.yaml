@@ -1,0 +1,33 @@
+models:
+  - name: default
+    provider: openrouter
+    openrouter_url: https://openrouter.ai/api/v1/chat/completions
+    model: openai/gpt-4o-mini
+    max_tokens: 4096
+    temperature: 0.3
+    timeout_seconds: 120
+
+embeddings:
+  provider: openrouter
+  openrouter_url: https://openrouter.ai/api/v1/embeddings
+  model: openai/text-embedding-3-small
+  dimensions: 1536
+  batch_size: 64
+  timeout_seconds: 120
+
+reranker:
+  model_name: BAAI/bge-reranker-base
+
+retrieval:
+  method: bm25+embedding+rerank
+  corpus:
+    glob: "*.md"
+    path: data/policies
+  sparse_retriever:
+    top_k: 15
+  dense_retriever:
+    top_k: 15
+  reranker:
+    top_k: 8
+  vector_store:
+    persist_dir: data/chroma
