@@ -89,6 +89,16 @@ class RequestLogger:
         self.record["model"] = model
         return self
 
+    def set_memory(self, history_text: str) -> "RequestLogger":
+        """Record the conversation history used for this request."""
+        self.record["history"] = history_text
+        return self
+
+    def set_rewrite(self, rewritten_query: str) -> "RequestLogger":
+        """Record the rewritten (standalone) retrieval query, if any."""
+        self.record["rewritten_query"] = rewritten_query
+        return self
+
     def add_guardrail(
         self, stage: str, passed: bool, message: str | None = None
     ) -> "RequestLogger":
@@ -141,6 +151,10 @@ class RequestLogger:
         rid = record.get("request_id", "???")
         lines = [f"\nREQUEST {rid}", ""]
         lines.append(f'Question:\n{record.get("question", "")}')
+        if record.get("rewritten_query"):
+            lines.append(f'\nRewritten query:\n{record.get("rewritten_query")}')
+        if record.get("history"):
+            lines.append(f'\nConversation history:\n{record.get("history")}')
         retrieval = record.get("retrieved_chunks", [])
         if retrieval:
             lines.append("\nRetrieval:")

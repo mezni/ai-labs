@@ -26,6 +26,7 @@ from src.knowledge.knowledge_base import KnowledgeBase
 from src.knowledge.retriever import Retriever
 from src.llm.llm_client import LLMClient
 from src.llm.prompt_manager import PromptManager
+from src.memory import ConversationMemory, QueryProcessor
 from src.observability import RequestLogger
 from src.utils import get_logger
 
@@ -70,11 +71,17 @@ def load_retriever(
     )
 
 
-def build_messages(query: str, context: list[dict], prompt_version: str | None) -> list[dict[str, str]]:
+def build_messages(
+    query: str,
+    context: list[dict],
+    prompt_version: str | None,
+    history: str = "",
+) -> list[dict[str, str]]:
     """Assemble system + user messages for the LLM from the prompt template."""
     prompt = PromptManager().get_prompt("retrieval_query", version=prompt_version)
     user = PromptManager().format_prompt(
         prompt["user_template"],
+        history=history,
         context="\n\n".join(f"[{c['source']}]\n{c['content']}" for c in context),
         query=query,
     )
@@ -103,6 +110,21 @@ with st.sidebar:
         load_retriever.clear()
         st.rerun()
 
+    st.divider()
+    st.subheader("Conversation memory")
+    st.caption(
+        "Memory answers 'what were we talking about?'; RAG answers "
+        "'what does the knowledge base say?'."
+    )
+    max_turns = st.slider("Memory turns", 1, 10, 6)
+    if st.button("Clear conversation", use_container_width=True):
+        st.session_state.pop("chat", None)
+        st.rerun()
+
+# -- state -----------------------------------------------------------
+if "chat" not in st.session_state:
+    st.session_state["chat"] = []
+
 try:
     kb = load_kb(st.session_state.pop("force_rebuild", False))
 except (RuntimeError, FileNotFoundError) as exc:
@@ -118,6 +140,22 @@ if not kb.is_built():
 
 retriever = load_retriever(kb, use_rerank, sparse_top_k, dense_top_k)
 
+def memory_from_chat(max_turns: int) -> ConversationMemory:
+    """Rebuild ConversationMemory from the session transcript."""
+    memory = ConversationMemory(max_turns=max_turns)
+    for turn in st.session_state["chat"]:
+        memory.add_message(turn["role"], turn["content"])
+    return memory
+
+
+def render_transcript() -> None:
+    """Show the persisted chat transcript above the input box."""
+    for turn in st.session_state["chat"]:
+        st.chat_message(turn["role"]).write(turn["content"])
+
+
+render_transcript()
+
 # -- chat ------------------------------------------------------------
 query = st.chat_input("Ask a question about Aether Wireless policies...")
 
@@ -129,26 +167,43 @@ if query:
     except EmptyQuestionError as exc:
         st.error(str(exc))
     else:
+        memory = memory_from_chat(max_turns)
         with st.chat_message("assistant"):
+            with st.spinner("Resolving the question against the conversation..."):
+                try:
+                    rewritten = QueryProcessor().process(query, memory) if memory else query
+                except Exception as exc:
+                    logger.warning("Query rewrite failed (%s); using raw question", exc)
+                    rewritten = query
             with st.spinner("Searching policies..."):
-                context = retriever.retrieve(query, top_k=top_k)
+                context = retriever.retrieve(rewritten, top_k=top_k)
             retrieval_refusal = check_retrieval(context)
             if retrieval_refusal is not None:
                 with RequestLogger() as logger:
                     logger.start(question=query)
                     logger.set_retrieval(context)
+                    logger.set_memory(memory.to_text())
+                    if rewritten != query:
+                        logger.set_rewrite(rewritten)
                     logger.add_guardrail("input", True)
                     logger.add_guardrail("retrieval", False, retrieval_refusal)
                     logger.finish(answer=retrieval_refusal, sources=[])
                 st.warning(retrieval_refusal)
+                st.session_state["chat"].append({"role": "user", "content": query})
+                st.session_state["chat"].append({"role": "assistant", "content": retrieval_refusal})
             else:
                 with st.spinner("Generating answer..."):
                     try:
-                        messages = build_messages(query, context, prompt_version)
+                        messages = build_messages(
+                            query, context, prompt_version, history=memory.to_text()
+                        )
                         with RequestLogger() as logger:
                             logger.start(question=query)
                             logger.set_retrieval(context)
                             logger.set_prompt(messages)
+                            logger.set_memory(memory.to_text())
+                            if rewritten != query:
+                                logger.set_rewrite(rewritten)
                             logger.add_guardrail("input", True)
                             logger.add_guardrail("retrieval", True)
                             client = LLMClient()
@@ -189,6 +244,9 @@ if query:
                         st.error(f"Generation failed: {exc}")
                         st.stop()
                 st.write(final_answer)
+
+                st.session_state["chat"].append({"role": "user", "content": query})
+                st.session_state["chat"].append({"role": "assistant", "content": final_answer})
 
                 with st.expander("Sources"):
                     for i, chunk in enumerate(context, 1):

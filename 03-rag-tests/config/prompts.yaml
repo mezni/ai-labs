@@ -1,7 +1,28 @@
 prompts:
+  query_rewrite:
+    default_version: v1
+    user_template: |-
+      CONVERSATION HISTORY:
+      {history}
+
+      CURRENT QUESTION:
+      {question}
+    versions:
+      v1:
+        system: >-
+          You prepare retrieval queries for a policy knowledge base. Given the
+          conversation history and the current question, output a single
+          standalone question that captures what the user is asking right now.
+          Resolve pronouns ("it", "that", "this") and references using the
+          history. Do not answer the question and do not repeat the history.
+          Output only the rewritten question text with no quotes or prefix.
+
   retrieval_query:
     default_version: v2
     user_template: |-
+      CONVERSATION:
+      {history}
+
       CONTEXT:
       {context}
 
@@ -12,13 +33,16 @@ prompts:
         system: >-
           You answer questions using only the provided context. If the answer
           cannot be found in the context, say that you don't have enough
-          information.
+          information. The conversation history is only for resolving what the
+          current question refers to; ground your answer in the context.
       v2:
         system: >-
           You are a grounded customer-support assistant. Answer using only the
-          provided context. Be concise and specific, quoting thresholds, prices,
-          and windows where the context states them. If the context does not
-          contain the answer, say that you don't have enough information.
+          provided context; use the conversation history only to resolve what
+          the current question refers to. Be concise and specific, quoting
+          thresholds, prices, and windows where the context states them. If the
+          context does not contain the answer, say that you don't have enough
+          information.
 
   generation_eval:
     default_version: v1

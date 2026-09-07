@@ -18,6 +18,7 @@ src/
   llm/            LLMClient (OpenRouter), PromptManager (multi-version)
   evaluation/     metrics, retrieval, generation
   guardrails.py   input / retrieval / grounding guardrails
+  memory.py       conversation memory + query rewriting
   observability.py request logger
   utils/          config loader, logging
 scripts/          generate_docs, rag_pipeline_runner, eval_retrieval, eval_generation
@@ -48,9 +49,50 @@ uv run python scripts/rag_pipeline_runner.py --query "How long is the return win
 
 ```bash
 uv run python scripts/rag_pipeline_runner.py --query "How much does a 5 GB Data Boost cost?" --rerank
+uv run python scripts/rag_pipeline_runner.py --query "How much does a 5 GB Data Boost cost?" --with-memory --history "User: Tell me about data boosts\nAssistant: Data boosts add monthly data."
 uv run python scripts/rag_pipeline_runner.py --query "..." --min-similarity 0.5
 uv run streamlit run app/streamlit_app.py
 ```
+
+## Conversation memory
+
+Conversation memory and knowledge retrieval are different things:
+
+- **Memory** answers *"what were we talking about?"* — the conversation history.
+- **RAG** answers *"what does the knowledge base say?"* — the retrieved corpus.
+
+With memory enabled the pipeline becomes:
+
+```
+User → Conversation history → Query processing → Retriever → LLM → Answer
+```
+
+`src/memory.py` implements both sides:
+
+1. **`ConversationMemory`** — a bounded rolling history (last `--max-turns`
+   user/assistant pairs). It only records what was said; it never retrieves
+   knowledge.
+2. **`QueryProcessor`** — strips the history offline (no retrieval) and rewrites
+   the current question into a *standalone* retrieval query, resolving pronouns
+   and references ("how much is **it**?", "and the return window?"). It uses
+   the `query_rewrite` prompt; if the LLM is unavailable the original question
+   is used unchanged.
+
+The rewritten standalone query drives the retriever (RAG side). The history is
+also injected into the generation prompt (`{history}` in `retrieval_query`), so
+the answer side can resolve references — but the system prompt still requires
+grounding in the retrieved context, not the history.
+
+```bash
+# CLI: seed history; "how much is it?" is rewritten into a standalone question
+uv run python scripts/rag_pipeline_runner.py --query "how much is it?" --with-memory \
+  --history "User: What does a 5 GB Data Boost cost?\nAssistant: It costs 5 per month."
+```
+
+The Streamlit app keeps the transcript in `session_state`, rewrites each new
+question against it, and includes history in generation. `Clear conversation`
+resets memory. Every request logs `history` and `rewritten_query` (see
+Observability).
 
 ## Evaluation
 
@@ -106,6 +148,7 @@ human-readable view in `data/logs/rag_requests.log`. Each record captures:
 
 - `request_id` & `timestamp`
 - `question`
+- `history` (conversation memory used) and `rewritten_query` (standalone retrieval query)
 - `retrieved_chunks` (id, source, score) and `retrieval_scores`
 - `prompt` (the messages sent to the model)
 - `model`

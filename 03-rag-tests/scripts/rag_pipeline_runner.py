@@ -34,6 +34,7 @@ from src.knowledge.knowledge_base import KnowledgeBase
 from src.knowledge.retriever import Retriever
 from src.llm.llm_client import LLMClient
 from src.llm.prompt_manager import PromptManager
+from src.memory import ConversationMemory, QueryProcessor
 from src.observability import RequestLogger
 from src.utils import get_logger
 
@@ -64,6 +65,23 @@ def _parse_args() -> argparse.Namespace:
         type=float,
         default=None,
         help="Retrieval guardrail threshold (default: config/llm_config.yaml).",
+    )
+    parser.add_argument(
+        "--with-memory",
+        action="store_true",
+        help="Use conversation memory: rewrite the question against history "
+        "and include the history when generating the answer.",
+    )
+    parser.add_argument(
+        "--history",
+        default="",
+        help="Seed conversation memory as 'User: ...\\nAssistant: ...' lines.",
+    )
+    parser.add_argument(
+        "--max-turns",
+        type=int,
+        default=6,
+        help="Turns of conversation memory to keep (default: 6).",
     )
     parser.add_argument("--corpus-dir", type=Path, default=Path("data/policies"))
     parser.add_argument("--index-path", type=Path, default=Path("data/faiss/index.bin"))
@@ -107,12 +125,19 @@ def retrieve_context(retriever: Retriever, query: str, top_k: int) -> list[dict]
     return chunks
 
 
-def build_messages(prompt_manager: PromptManager, query: str, context: list[dict], version: str | None) -> list[dict[str, str]]:
+def build_messages(
+    prompt_manager: PromptManager,
+    query: str,
+    context: list[dict],
+    version: str | None,
+    history: str = "",
+) -> list[dict[str, str]]:
     """Assemble the system + user messages from the retrieval prompt template."""
     prompt = prompt_manager.get_prompt("retrieval_query", version=version)
     system = prompt.get("system", "")
     user = prompt_manager.format_prompt(
         prompt["user_template"],
+        history=history,
         context="\n\n".join(f"[{c['source']}]\n{c['content']}" for c in context),
         query=query,
     )
@@ -131,11 +156,21 @@ def main() -> None:
     except EmptyQuestionError as exc:
         raise SystemExit(str(exc))
 
+    memory = _build_memory(args)
+
     with RequestLogger() as logger_rec:
         logger_rec.start(question=args.query)
         logger_rec.add_guardrail("input", True)
+        if memory:
+            logger_rec.set_memory(memory.to_text())
 
-        context = retrieve_context(retriever_or_exit(args), args.query, args.top_k)
+        retriever = retriever_or_exit(args)
+        retrieval_query = args.query
+        if args.with_memory and memory:
+            retrieval_query = QueryProcessor().process(args.query, memory)
+            logger_rec.set_rewrite(retrieval_query)
+
+        context = retrieve_context(retriever, retrieval_query, args.top_k)
         refusal = check_retrieval(context, min_similarity=args.min_similarity)
         if refusal is not None:
             logger_rec.set_retrieval(context)
@@ -148,7 +183,13 @@ def main() -> None:
         logger_rec.add_guardrail("retrieval", True)
 
         prompt_manager = PromptManager()
-        messages = build_messages(prompt_manager, args.query, context, args.prompt_version)
+        messages = build_messages(
+            prompt_manager,
+            args.query,
+            context,
+            args.prompt_version,
+            history=memory.to_text() if args.with_memory and memory else "",
+        )
         llm_client = LLMClient()
         logger_rec.set_prompt(messages)
         logger_rec.set_model(llm_client.model)
@@ -166,6 +207,7 @@ def main() -> None:
         refusal = check_grounding(answer, context_text)
         if refusal is not None:
             logger_rec.add_guardrail("generation", False, refusal)
+            memory.add(args.query, refusal)
             logger_rec.finish(
                 answer=refusal,
                 usage=usage,
@@ -175,6 +217,7 @@ def main() -> None:
             return
 
         logger_rec.add_guardrail("generation", True)
+        memory.add(args.query, answer)
         logger_rec.finish(
             answer=answer,
             usage=usage,
@@ -189,6 +232,27 @@ def main() -> None:
         print("Sources:")
         for chunk in context:
             print(f"  - {chunk['source']} (score={chunk['score']:.3f})")
+
+
+def _build_memory(args: argparse.Namespace) -> ConversationMemory:
+    """Seed ConversationMemory from --history, if provided."""
+    memory = ConversationMemory(max_turns=args.max_turns)
+    if not args.history.strip():
+        return memory
+    for line in args.history.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        role, sep, content = line.partition(":")
+        if not sep:
+            continue
+        kind = role.strip().lower()
+        if kind == "user":
+            memory.add_user(content.strip())
+        elif kind == "assistant":
+            memory.add_assistant(content.strip())
+    logger.info("Seeded conversation memory with %d turns", len(memory) // 2)
+    return memory
 
 
 def retriever_or_exit(args: argparse.Namespace) -> Retriever:
