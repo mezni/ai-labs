@@ -1,10 +1,11 @@
 """Configuration loader for YAML files."""
-import logging
 from pathlib import Path
 
 import yaml
 
-logger = logging.getLogger(__name__)
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def load_yaml_config(config_path: str) -> dict:
@@ -18,21 +19,21 @@ def load_yaml_config(config_path: str) -> dict:
 
 
 def load_all_configs(config_dir: str = "config") -> dict[str, dict]:
-    """Load all available config files from the config/ directory.
+    """Load available YAML config files from the config/ directory.
 
-    Missing optional configs (agent, prompts) are skipped with a warning so the
-    loader works with only a subset of config files present.
+    `llm` is the active backend config; other configs are loaded when their
+    YAML file exists. Optional-missing files are logged at debug level only.
     """
     config_dir = Path(config_dir)
     available: dict[str, dict] = {}
     for name, filename in [
-        ("agent", "agent_config.yaml"),
         ("llm", "llm_config.yaml"),
         ("prompts", "prompts.yaml"),
+        ("agent", "agent_config.yaml"),
     ]:
         path = config_dir / filename
         if path.exists():
             available[name] = load_yaml_config(path)
         else:
-            logger.warning("Optional config %s not found, skipping", path)
+            logger.debug("Optional config %s not found, skipping", path)
     return available
