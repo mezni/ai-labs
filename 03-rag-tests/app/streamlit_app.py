@@ -47,14 +47,14 @@ def load_kb(force_rebuild: bool = False) -> KnowledgeBase:
 
 @st.cache_resource(show_spinner="Preparing retriever...")
 def load_retriever(
-    kb: KnowledgeBase,
+    _kb: KnowledgeBase,
     use_rerank: bool,
     sparse_top_k: int,
     dense_top_k: int,
 ) -> Retriever:
     reranker = Reranker() if use_rerank else None
     return Retriever(
-        kb,
+        _kb,
         sparse_top_k=sparse_top_k,
         dense_top_k=dense_top_k,
         reranker=reranker,
@@ -91,6 +91,7 @@ with st.sidebar:
     if st.button("Rebuild index from corpus", use_container_width=True):
         st.session_state["force_rebuild"] = True
         load_kb.clear()
+        load_retriever.clear()
         st.rerun()
 
 try:

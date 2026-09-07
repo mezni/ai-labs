@@ -1,0 +1,62 @@
+[
+  {
+    "question": "How long is the return window for a new device bought in-store or online, and what restocking fee applies?",
+    "expected_answer": "New devices can be returned within 14 days. A $35 restocking fee applies, and it is waived for dead-on-arrival (DOA) devices.",
+    "expected_source": "returns_refunds_policy.md"
+  },
+  {
+    "question": "What refund percentage applies if a returned device has a cracked screen?",
+    "expected_answer": "A device with a screen crack is eligible for a 50% refund with a $35 restocking fee.",
+    "expected_source": "returns_refunds_policy.md"
+  },
+  {
+    "question": "How many business days does it take for a refund to be issued after a device is received?",
+    "expected_answer": "Refunds are issued within 7-10 business days of device receipt at the facility.",
+    "expected_source": "returns_refunds_policy.md"
+  },
+  {
+    "question": "What is the monthly cost and deductible for Tier 1 screen repair protection?",
+    "expected_answer": "Tier 1 screen repair costs $5/month with a $29 deductible per claim, and it covers one screen repair per 12 months.",
+    "expected_source": "device_protection_policy.md"
+  },
+  {
+    "question": "How quickly does a replacement device ship under the highest device protection tier?",
+    "expected_answer": "A replacement device ships within 24 hours and arrives in 1-3 business days.",
+    "expected_source": "device_protection_policy.md"
+  },
+  {
+    "question": "At what usage threshold does the business data plan get throttled, and to what speed?",
+    "expected_answer": "The business plan is throttled to 1 Mbps after 200 GB of usage in a billing cycle.",
+    "expected_source": "data_plan_terms_conditions.md"
+  },
+  {
+    "question": "How much does a 5 GB Data Boost cost and how long is it valid?",
+    "expected_answer": "A 5 GB Data Boost costs $35 and is valid for the current billing cycle.",
+    "expected_source": "data_plan_terms_conditions.md"
+  },
+  {
+    "question": "What does the International Roaming Day Pass include and what is the price?",
+    "expected_answer": "The Day Pass costs $15/day and includes 500 MB of high-speed data plus unlimited in-country calls and messaging for 24 hours.",
+    "expected_source": "international_roaming_policy.md"
+  },
+  {
+    "question": "How long must a device be on an account before an upgrade is allowed, or what is the alternative?",
+    "expected_answer": "A device must be on the account for at least 12 months (or 50% of the installment term); otherwise the customer pays the remaining balance before upgrading.",
+    "expected_source": "device_upgrade_guidelines.md"
+  },
+  {
+    "question": "What are the coverage details of the monthly International Roaming Pass purchased as an add-on?",
+    "expected_answer": "The International Roaming Pass add-on costs $15/day and includes 500 MB plus unlimited calls in the destination country for the current day.",
+    "expected_source": "data_plan_terms_conditions.md"
+  },
+  {
+    "question": "Is return shipping free for dead-on-arrival devices?",
+    "expected_answer": "Yes. Return shipping is free for defective and DOA devices; the customer pays return shipping only for change-of-mind returns.",
+    "expected_source": "returns_refunds_policy.md"
+  },
+  {
+    "question": "What happens to plan charges when a full line is canceled within the return window?",
+    "expected_answer": "The activation fee is refunded when the full line is canceled within the return window, and plan charges for the days used are deducted from the refund.",
+    "expected_source": "returns_refunds_policy.md"
+  }
+]

@@ -1,0 +1,204 @@
+{
+  "questions": {
+    "5": {
+      "recall_at_k": 0.65,
+      "precision_at_k": 0.6166666666666667,
+      "hit_at_k": 1.0,
+      "mrr_at_k": 1.0
+    }
+  },
+  "per_question": [
+    {
+      "index": 1,
+      "question": "How long is the return window for a new device bought in-store or online, and what restocking fee applies?",
+      "expected_source": "returns_refunds_policy.md",
+      "retrieved_sources": [
+        "returns_refunds_policy.md",
+        "returns_refunds_policy.md",
+        "returns_refunds_policy.md",
+        "returns_refunds_policy.md",
+        "returns_refunds_policy.md"
+      ],
+      "recall_at_k": 1.0,
+      "precision_at_k": 1.0,
+      "hit_at_k": 1.0,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "index": 2,
+      "question": "What refund percentage applies if a returned device has a cracked screen?",
+      "expected_source": "returns_refunds_policy.md",
+      "retrieved_sources": [
+        "returns_refunds_policy.md",
+        "device_trade_in_process.md",
+        "returns_refunds_policy.md",
+        "returns_refunds_policy.md",
+        "device_protection_policy.md"
+      ],
+      "recall_at_k": 0.6,
+      "precision_at_k": 0.6,
+      "hit_at_k": 1.0,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "index": 3,
+      "question": "How many business days does it take for a refund to be issued after a device is received?",
+      "expected_source": "returns_refunds_policy.md",
+      "retrieved_sources": [
+        "returns_refunds_policy.md",
+        "returns_refunds_policy.md",
+        "returns_refunds_policy.md",
+        "returns_refunds_policy.md",
+        "device_trade_in_process.md"
+      ],
+      "recall_at_k": 0.8,
+      "precision_at_k": 0.8,
+      "hit_at_k": 1.0,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "index": 4,
+      "question": "What is the monthly cost and deductible for Tier 1 screen repair protection?",
+      "expected_source": "device_protection_policy.md",
+      "retrieved_sources": [
+        "device_protection_policy.md",
+        "device_protection_policy.md",
+        "device_protection_policy.md",
+        "device_protection_policy.md",
+        "device_trade_in_process.md"
+      ],
+      "recall_at_k": 0.8,
+      "precision_at_k": 0.8,
+      "hit_at_k": 1.0,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "index": 5,
+      "question": "How quickly does a replacement device ship under the highest device protection tier?",
+      "expected_source": "device_protection_policy.md",
+      "retrieved_sources": [
+        "device_protection_policy.md",
+        "device_protection_policy.md",
+        "device_protection_policy.md",
+        "device_protection_policy.md",
+        "device_trade_in_process.md"
+      ],
+      "recall_at_k": 0.8,
+      "precision_at_k": 0.8,
+      "hit_at_k": 1.0,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "index": 6,
+      "question": "At what usage threshold does the business data plan get throttled, and to what speed?",
+      "expected_source": "data_plan_terms_conditions.md",
+      "retrieved_sources": [
+        "data_plan_terms_conditions.md",
+        "postpaid_plan_guidelines.md",
+        "data_plan_terms_conditions.md",
+        "postpaid_plan_guidelines.md",
+        "postpaid_plan_guidelines.md"
+      ],
+      "recall_at_k": 0.5,
+      "precision_at_k": 0.4,
+      "hit_at_k": 1.0,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "index": 7,
+      "question": "How much does a 5 GB Data Boost cost and how long is it valid?",
+      "expected_source": "data_plan_terms_conditions.md",
+      "retrieved_sources": [
+        "data_plan_terms_conditions.md",
+        "postpaid_plan_guidelines.md",
+        "privacy_data_protection_policy.md",
+        "postpaid_plan_guidelines.md",
+        "new_line_activation_process.md"
+      ],
+      "recall_at_k": 0.25,
+      "precision_at_k": 0.2,
+      "hit_at_k": 1.0,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "index": 8,
+      "question": "What does the International Roaming Day Pass include and what is the price?",
+      "expected_source": "international_roaming_policy.md",
+      "retrieved_sources": [
+        "international_roaming_policy.md",
+        "data_plan_terms_conditions.md",
+        "international_roaming_policy.md",
+        "international_roaming_policy.md",
+        "postpaid_plan_guidelines.md"
+      ],
+      "recall_at_k": 0.75,
+      "precision_at_k": 0.6,
+      "hit_at_k": 1.0,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "index": 9,
+      "question": "How long must a device be on an account before an upgrade is allowed, or what is the alternative?",
+      "expected_source": "device_upgrade_guidelines.md",
+      "retrieved_sources": [
+        "device_upgrade_guidelines.md",
+        "plan_upgrade_policy.md",
+        "plan_upgrade_policy.md",
+        "billing_invoice_policy.md",
+        "device_upgrade_guidelines.md"
+      ],
+      "recall_at_k": 0.4,
+      "precision_at_k": 0.4,
+      "hit_at_k": 1.0,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "index": 10,
+      "question": "What are the coverage details of the monthly International Roaming Pass purchased as an add-on?",
+      "expected_source": "data_plan_terms_conditions.md",
+      "retrieved_sources": [
+        "data_plan_terms_conditions.md",
+        "international_roaming_policy.md",
+        "international_roaming_policy.md",
+        "international_roaming_policy.md",
+        "data_plan_terms_conditions.md"
+      ],
+      "recall_at_k": 0.5,
+      "precision_at_k": 0.4,
+      "hit_at_k": 1.0,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "index": 11,
+      "question": "Is return shipping free for dead-on-arrival devices?",
+      "expected_source": "returns_refunds_policy.md",
+      "retrieved_sources": [
+        "returns_refunds_policy.md",
+        "returns_refunds_policy.md",
+        "returns_refunds_policy.md",
+        "returns_refunds_policy.md",
+        "returns_refunds_policy.md"
+      ],
+      "recall_at_k": 1.0,
+      "precision_at_k": 1.0,
+      "hit_at_k": 1.0,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "index": 12,
+      "question": "What happens to plan charges when a full line is canceled within the return window?",
+      "expected_source": "returns_refunds_policy.md",
+      "retrieved_sources": [
+        "returns_refunds_policy.md",
+        "returns_refunds_policy.md",
+        "postpaid_plan_guidelines.md",
+        "port_in_policy.md",
+        "promotions_eligibility_terms.md"
+      ],
+      "recall_at_k": 0.4,
+      "precision_at_k": 0.4,
+      "hit_at_k": 1.0,
+      "reciprocal_rank": 1.0
+    }
+  ]
+}
