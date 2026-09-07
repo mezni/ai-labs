@@ -8,6 +8,8 @@ End-to-end Retrieval-Augmented Generation (RAG) copilot for **Aether Wireless** 
 - **Vector store** — FAISS (`IndexFlatIP`, cosine over L2-normalized vectors)
 - **Retrieval** — hybrid BM25 (sparse) + FAISS (dense) fused with Reciprocal Rank Fusion; optional cross-encoder reranker
 - **Prompts** — versioned templates in `config/prompts.yaml`
+- **Guardrails** — input, retrieval, and generation-grounding checks in `src/guardrails.py`
+- **Observability** — per-request JSONL logs in `src/observability.py`
 - **UI** — Streamlit chat app
 
 ```
@@ -15,6 +17,8 @@ src/
   knowledge/      EmbeddingGenerator, BM25Index, Reranker, KnowledgeBase (FAISS), Retriever
   llm/            LLMClient (OpenRouter), PromptManager (multi-version)
   evaluation/     metrics, retrieval, generation
+  guardrails.py   input / retrieval / grounding guardrails
+  observability.py request logger
   utils/          config loader, logging
 scripts/          generate_docs, rag_pipeline_runner, eval_retrieval, eval_generation
 app/              streamlit_app.py
@@ -22,6 +26,7 @@ data/
   policies/       source markdown corpus
   faiss/          built index (index.bin + chunks.json)
   validation/     eval_questions.json
+  logs/           per-request observability output (jsonl + readable .log)
 ```
 
 ## Setup
@@ -43,6 +48,7 @@ uv run python scripts/rag_pipeline_runner.py --query "How long is the return win
 
 ```bash
 uv run python scripts/rag_pipeline_runner.py --query "How much does a 5 GB Data Boost cost?" --rerank
+uv run python scripts/rag_pipeline_runner.py --query "..." --min-similarity 0.5
 uv run streamlit run app/streamlit_app.py
 ```
 
@@ -108,6 +114,7 @@ human-readable view in `data/logs/rag_requests.log`. Each record captures:
 - `answer`
 - `sources` (deduplicated source files)
 - `error` (set when generation fails)
+- `guardrails` — per-stage check outcomes (`stage`, `passed`/blocked, `message`)
 
 ```text
 REQUEST 0318e833d4eb
@@ -137,3 +144,20 @@ example.txt
 
 The JSONL format is machine-readable for dashboards/aggregation; the `.log` view
 is for quick debugging.
+
+## Guardrails
+
+`src/guardrails.py` enforces three stages; thresholds live in `config/llm_config.yaml`:
+
+| Stage | Guardrail | When blocked |
+| ----- | --------- | ------------ |
+| Input | `validate_query()` | Empty/whitespace question is rejected (`Question must not be empty.`) |
+| Retrieval | `check_retrieval()` | Top chunk's dense similarity < `guardrails.retrieval.min_similarity` (0.30) → answers `No relevant information was found.` |
+| Generation | `check_grounding()` | Answer's lexical groundedness in retrieved context < `guardrails.generation.min_groundedness` (0.30) → refuses the ungrounded answer |
+
+```bash
+uv run python scripts/rag_pipeline_runner.py --query "..." --min-similarity 0.5
+```
+
+The retriever exposes `dense_similarity` (raw cosine from FAISS) on each chunk so
+the retrieval threshold reflects true similarity, independent of RRF/rerank score scales.

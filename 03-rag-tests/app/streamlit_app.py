@@ -13,6 +13,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import streamlit as st
 
+from src.guardrails import (
+    NO_RELEVANT_MESSAGE,
+    UNGROUNDED_MESSAGE,
+    EmptyQuestionError,
+    check_grounding,
+    check_retrieval,
+    validate_query,
+)
 from src.knowledge import Reranker
 from src.knowledge.knowledge_base import KnowledgeBase
 from src.knowledge.retriever import Retriever
@@ -115,39 +123,75 @@ query = st.chat_input("Ask a question about Aether Wireless policies...")
 
 if query:
     st.chat_message("user").write(query)
-    with st.chat_message("assistant"):
-        with st.spinner("Searching policies..."):
-            context = retriever.retrieve(query, top_k=top_k)
-        if not context:
-            st.write("No relevant context found for that question.")
-        with st.spinner("Generating answer..."):
-            try:
-                messages = build_messages(query, context, prompt_version)
+
+    try:
+        query = validate_query(query)
+    except EmptyQuestionError as exc:
+        st.error(str(exc))
+    else:
+        with st.chat_message("assistant"):
+            with st.spinner("Searching policies..."):
+                context = retriever.retrieve(query, top_k=top_k)
+            retrieval_refusal = check_retrieval(context)
+            if retrieval_refusal is not None:
                 with RequestLogger() as logger:
                     logger.start(question=query)
                     logger.set_retrieval(context)
-                    logger.set_prompt(messages)
-                    client = LLMClient()
-                    logger.set_model(client.model)
+                    logger.add_guardrail("input", True)
+                    logger.add_guardrail("retrieval", False, retrieval_refusal)
+                    logger.finish(answer=retrieval_refusal, sources=[])
+                st.warning(retrieval_refusal)
+            else:
+                with st.spinner("Generating answer..."):
                     try:
-                        answer, usage = client.generate_with_usage(messages)
-                    except Exception as exc:
-                        logger.record_error(exc)
-                        raise
-                    finally:
-                        client.close()
-                    logger.finish(
-                        answer=answer,
-                        usage=usage,
-                        sources=sorted({c["source"] for c in context}),
-                    )
-            except RuntimeError as exc:
-                st.error(f"Generation failed: {exc}")
-                st.stop()
-        st.write(answer)
+                        messages = build_messages(query, context, prompt_version)
+                        with RequestLogger() as logger:
+                            logger.start(question=query)
+                            logger.set_retrieval(context)
+                            logger.set_prompt(messages)
+                            logger.add_guardrail("input", True)
+                            logger.add_guardrail("retrieval", True)
+                            client = LLMClient()
+                            logger.set_model(client.model)
+                            try:
+                                answer, usage = client.generate_with_usage(messages)
+                            except Exception as exc:
+                                logger.record_error(exc)
+                                raise
+                            finally:
+                                client.close()
 
-        with st.expander("Sources"):
-            for i, chunk in enumerate(context, 1):
-                st.markdown(f"**{i}. {chunk['source']}** (score: {chunk['score']:.4f})")
-                st.text(chunk["content"][:300] + ("..." if len(chunk["content"]) > 300 else ""))
-                st.divider()
+                            context_text = "\n\n".join(
+                                f"[{c['source']}]\n{c['content']}" for c in context
+                            )
+                            grounding_refusal = check_grounding(answer, context_text)
+                            if grounding_refusal is not None:
+                                logger.add_guardrail("generation", False, grounding_refusal)
+                                logger.finish(
+                                    answer=grounding_refusal,
+                                    usage=usage,
+                                    sources=sorted({c["source"] for c in context}),
+                                )
+                                st.warning(grounding_refusal)
+                            else:
+                                logger.add_guardrail("generation", True)
+                                logger.finish(
+                                    answer=answer,
+                                    usage=usage,
+                                    sources=sorted({c["source"] for c in context}),
+                                )
+                            final_answer = (
+                                grounding_refusal
+                                if grounding_refusal is not None
+                                else answer
+                            )
+                    except RuntimeError as exc:
+                        st.error(f"Generation failed: {exc}")
+                        st.stop()
+                st.write(final_answer)
+
+                with st.expander("Sources"):
+                    for i, chunk in enumerate(context, 1):
+                        st.markdown(f"**{i}. {chunk['source']}** (score: {chunk['score']:.4f})")
+                        st.text(chunk["content"][:300] + ("..." if len(chunk["content"]) > 300 else ""))
+                        st.divider()

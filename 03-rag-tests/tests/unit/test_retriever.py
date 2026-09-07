@@ -40,6 +40,14 @@ def test_retrieve_returns_ranked_chunks(fake_embedder):
     assert results[0]["score"] >= results[-1]["score"]
 
 
+def test_retrieve_carries_dense_similarity(fake_embedder):
+    retriever = _retriever(fake_embedder)
+    results = retriever.retrieve("how many leave days", top_k=2)
+    assert all("dense_similarity" in r for r in results)
+    assert all(r["dense_similarity"] is not None for r in results)
+    assert results[0]["dense_similarity"] >= results[-1]["dense_similarity"]
+
+
 def test_retrieve_top_k_respected(fake_embedder):
     retriever = _retriever(fake_embedder)
     results = retriever.retrieve("leave access backup", top_k=2)

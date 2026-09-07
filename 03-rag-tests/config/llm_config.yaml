@@ -24,3 +24,13 @@ models:
     model: cohere/rerank-v3.5
     top_n: 5
     timeout_seconds: 120
+
+guardrails:
+  input:
+    enabled: true
+  retrieval:
+    enabled: true
+    min_similarity: 0.30
+  generation:
+    enabled: true
+    min_groundedness: 0.30

@@ -21,6 +21,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from src.guardrails import (
+    NO_RELEVANT_MESSAGE,
+    UNGROUNDED_MESSAGE,
+    EmptyQuestionError,
+    check_grounding,
+    check_retrieval,
+    validate_query,
+)
 from src.knowledge import Reranker
 from src.knowledge.knowledge_base import KnowledgeBase
 from src.knowledge.retriever import Retriever
@@ -50,6 +58,12 @@ def _parse_args() -> argparse.Namespace:
         "--rebuild",
         action="store_true",
         help="Force a rebuild of the index instead of loading a cached one.",
+    )
+    parser.add_argument(
+        "--min-similarity",
+        type=float,
+        default=None,
+        help="Retrieval guardrail threshold (default: config/llm_config.yaml).",
     )
     parser.add_argument("--corpus-dir", type=Path, default=Path("data/policies"))
     parser.add_argument("--index-path", type=Path, default=Path("data/faiss/index.bin"))
@@ -111,23 +125,27 @@ def build_messages(prompt_manager: PromptManager, query: str, context: list[dict
 
 def main() -> None:
     args = _parse_args()
-    kb = build_knowledge_base(args)
 
-    reranker = Reranker() if args.rerank else None
-    retriever = Retriever(
-        kb,
-        sparse_top_k=args.sparse_top_k,
-        dense_top_k=args.dense_top_k,
-        reranker=reranker,
-    )
-
-    context = retrieve_context(retriever, args.query, args.top_k)
-    if not context:
-        raise SystemExit("No context retrieved for the query; cannot generate an answer.")
+    try:
+        args.query = validate_query(args.query)
+    except EmptyQuestionError as exc:
+        raise SystemExit(str(exc))
 
     with RequestLogger() as logger_rec:
         logger_rec.start(question=args.query)
+        logger_rec.add_guardrail("input", True)
+
+        context = retrieve_context(retriever_or_exit(args), args.query, args.top_k)
+        refusal = check_retrieval(context, min_similarity=args.min_similarity)
+        if refusal is not None:
+            logger_rec.set_retrieval(context)
+            logger_rec.add_guardrail("retrieval", False, refusal)
+            logger_rec.finish(answer=refusal, sources=[])
+            print(block_style(args.query, refusal))
+            return
+
         logger_rec.set_retrieval(context)
+        logger_rec.add_guardrail("retrieval", True)
 
         prompt_manager = PromptManager()
         messages = build_messages(prompt_manager, args.query, context, args.prompt_version)
@@ -137,17 +155,31 @@ def main() -> None:
 
         try:
             answer, usage = llm_client.generate_with_usage(messages)
-            logger_rec.finish(
-                answer=answer,
-                usage=usage,
-                sources=sorted({chunk["source"] for chunk in context}),
-            )
         except Exception as exc:
             logger_rec.record_error(exc)
             logger_rec.finish(answer="", sources=sorted({c["source"] for c in context}))
             raise
         finally:
             llm_client.close()
+
+        context_text = "\n\n".join(f"[{c['source']}]\n{c['content']}" for c in context)
+        refusal = check_grounding(answer, context_text)
+        if refusal is not None:
+            logger_rec.add_guardrail("generation", False, refusal)
+            logger_rec.finish(
+                answer=refusal,
+                usage=usage,
+                sources=sorted({c["source"] for c in context}),
+            )
+            print(block_style(args.query, refusal))
+            return
+
+        logger_rec.add_guardrail("generation", True)
+        logger_rec.finish(
+            answer=answer,
+            usage=usage,
+            sources=sorted({c["source"] for c in context}),
+        )
 
         print("\n" + "=" * 70)
         print(f"Q: {args.query}")
@@ -157,7 +189,27 @@ def main() -> None:
         print("Sources:")
         for chunk in context:
             print(f"  - {chunk['source']} (score={chunk['score']:.3f})")
-    kb.close()
+
+
+def retriever_or_exit(args: argparse.Namespace) -> Retriever:
+    """Build the KB and hybrid retriever, exiting early on empty corpus."""
+    kb = build_knowledge_base(args)
+    reranker = Reranker() if args.rerank else None
+    return Retriever(
+        kb,
+        sparse_top_k=args.sparse_top_k,
+        dense_top_k=args.dense_top_k,
+        reranker=reranker,
+    )
+
+
+def block_style(query: str, message: str, context: list[dict] | None = None) -> str:
+    """Render a blocked request banner for guardrail refusals."""
+    lines = ["\n" + "=" * 70, f"Q: {query}", "-" * 70, message]
+    if context:
+        lines.append("-" * 70)
+        lines.append("Retrieved context was below the relevance threshold.")
+    return "\n".join(lines)
 
 
 if __name__ == "__main__":

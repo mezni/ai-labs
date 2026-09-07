@@ -89,6 +89,15 @@ class RequestLogger:
         self.record["model"] = model
         return self
 
+    def add_guardrail(
+        self, stage: str, passed: bool, message: str | None = None
+    ) -> "RequestLogger":
+        """Record an input/retrieval/generation guardrail outcome."""
+        self.record.setdefault("guardrails", []).append(
+            {"stage": stage, "passed": passed, "message": message}
+        )
+        return self
+
     def finish(
         self,
         answer: str,
@@ -158,6 +167,14 @@ class RequestLogger:
             lines.extend(f"  {source}" for source in sources)
         if record.get("error"):
             lines.append(f'\nError:\n{record.get("error")}')
+        guardrails = record.get("guardrails", [])
+        if guardrails:
+            lines.append("\nGuardrails:")
+            lines.extend(
+                f"  {g.get('stage')}: {'passed' if g.get('passed') else 'BLOCKED'}"
+                + (f" - {g.get('message')}" if g.get("message") else "")
+                for g in guardrails
+            )
         return "\n".join(lines)
 
     def _write_readable(self) -> None:

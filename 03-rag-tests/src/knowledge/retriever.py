@@ -67,6 +67,9 @@ class Retriever:
                 continue
             copy = dict(chunk)
             copy["score"] = score
+            dense_hit = dense_by_id.get(chunk_id)
+            if dense_hit is not None:
+                copy["dense_similarity"] = dense_hit.get("score")
             candidates.append(copy)
 
         if self.reranker is not None:
