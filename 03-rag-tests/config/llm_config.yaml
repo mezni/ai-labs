@@ -1,5 +1,26 @@
 models:
-  - name: default
-    provider: openai
-    model: gpt-4o
-    temperature: 0.7
+  # Primary chat LLM used for copilot rationale / conversational responses.
+  chat:
+    provider: openrouter
+    openrouter_url: https://openrouter.ai/api/v1/chat/completions
+    model: minimax/MiniMax-M2
+    max_tokens: 4096
+    temperature: 0.3
+    timeout_seconds: 120
+
+  # Dense embedding model for RAG over data/knowledge_base.
+  embedding:
+    provider: openrouter
+    openrouter_url: https://openrouter.ai/api/v1/embeddings
+    model: openai/text-embedding-3-small
+    batch_size: 64
+    timeout_seconds: 120
+
+  # Cross-Encoder reranker: re-scores the sparse/dense top-k candidates for
+  # higher grounding precision via OpenRouter's rerank endpoint.
+  reranker:
+    provider: openrouter
+    openrouter_url: https://openrouter.ai/api/v1/rerank
+    model: cohere/rerank-v3.5
+    top_n: 5
+    timeout_seconds: 120

@@ -6,6 +6,13 @@ import yaml
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_LLM_CONFIG = "config/llm_config.yaml"
+
+
+def load_config(config_path: str = DEFAULT_LLM_CONFIG) -> dict:
+    """Load a YAML config file (defaults to the LLM config)."""
+    return load_yaml_config(config_path)
+
 
 def load_yaml_config(config_path: str) -> dict:
     """Load YAML configuration file."""

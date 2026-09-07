@@ -7,10 +7,29 @@ authors = [
     { name = "M.Mezni", email = "mamezni@gmail.com" }
 ]
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "httpx>=0.27,<1",
+    "python-dotenv>=1.0,<2",
+    "pyyaml>=6.0,<7",
+]
 
 [project.scripts]
 03-rag-tests = "03_rag_tests:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8,<9",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = [
+    "integration: tests that call live third-party APIs (require RUN_INTEGRATION=1)",
+]
 
 [build-system]
 requires = ["uv_build>=0.12.3,<0.13.0"]
