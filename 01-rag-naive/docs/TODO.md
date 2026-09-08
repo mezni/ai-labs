@@ -21,11 +21,11 @@ Reference: [PROJECT.md](PROJECT.md).
 
 ## Cleaning (`src/rag/clean.py`)
 
-- [ ] Normalize line endings (`\r\n`, `\r` → `\n`)
-- [ ] Remove null characters (`\x00`)
-- [ ] Collapse excess whitespace
-- [ ] Preserve paragraph boundaries
-- [ ] Trim leading/trailing whitespace
+- [x] Normalize line endings (`\r\n`, `\r` → `\n`)
+- [x] Remove null characters (`\x00`)
+- [x] Collapse excess whitespace
+- [x] Preserve paragraph boundaries (blank lines collapse to a single `\n\n`)
+- [x] Trim leading/trailing whitespace
 
 ## Chunking (`src/rag/chunk.py`)
 
@@ -83,7 +83,7 @@ Reference: [PROJECT.md](PROJECT.md).
 
 - [x] `test_config.py`: settings defaults, env overrides, path anchoring, validation
 - [x] `test_extract.py`: discovery, page-aware extraction, JSON shape, failure handling
-- [ ] `test_clean.py`: line endings, null bytes, whitespace, trimming
+- [x] `test_clean.py`: line endings, null bytes, whitespace, trimming, paragraph preservation
 - [ ] `test_chunk.py`: size, overlap, page metadata, ordering, empty text
 - [ ] `test_state.py`: change detection NEW/UNCHANGED/CHANGED/DELETED
 - [ ] `test_index.py`: add/search/remove with explicit IDs, dimension validation
