@@ -10,12 +10,16 @@ models:
     provider: openrouter
     model: minimax/minimax-m3
     temperature: 0.2
-    max_tokens: 1000
+    max_tokens: 4096
+    timeout_seconds: 120
 
   embedding:
     provider: openai
     model: text-embedding-3-small
+    dimensions: 1536
+    timeout_seconds: 120
 
 rag:
-  top_k: 5
-  similarity_threshold: 0.70
+  chunking:
+    chunk_size: 500
+    chunk_overlap: 50
