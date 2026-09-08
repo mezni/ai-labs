@@ -36,11 +36,11 @@ Reference: [PROJECT.md](PROJECT.md).
 
 ## Embedding (`src/rag/embed.py`)
 
-- [ ] Create OpenAI-compatible client from `OPENROUTER_BASE_URL` / `OPENROUTER_API_KEY`
-- [ ] Implement embedding request against `OPENROUTER_EMBEDDING_MODEL`
-- [ ] Parse embedding response and extract vector
-- [ ] Validate embedding dimension against index dimension (mismatch → fail safely)
-- [ ] Add retry + logging on embedding failure
+- [x] Create OpenAI-compatible client from `OPENROUTER_BASE_URL` / `OPENROUTER_API_KEY`
+- [x] Implement embedding request against `OPENROUTER_EMBEDDING_MODEL`
+- [x] Parse embedding response and extract vector
+- [x] Validate embedding dimension against index dimension (mismatch → fail safely)
+- [x] Add retry + logging on embedding failure
 
 ## Indexing (`src/rag/index.py` + `src/rag/state.py`)
 
@@ -85,6 +85,7 @@ Reference: [PROJECT.md](PROJECT.md).
 - [x] `test_extract.py`: discovery, page-aware extraction, JSON shape, failure handling
 - [x] `test_clean.py`: line endings, null bytes, whitespace, trimming, paragraph preservation
 - [x] `test_chunk.py`: size, overlap, page metadata, ordering, empty text
+- [x] `test_embed.py`: OpenRouter request construction, model configuration, response parsing, dimension validation, retry/failure handling
 - [ ] `test_state.py`: change detection NEW/UNCHANGED/CHANGED/DELETED
 - [ ] `test_index.py`: add/search/remove with explicit IDs, dimension validation
 - [ ] `test_retrieve.py`: query embedding, normalization, top-k mapping to metadata
