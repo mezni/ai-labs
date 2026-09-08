@@ -29,10 +29,10 @@ Reference: [PROJECT.md](PROJECT.md).
 
 ## Chunking (`src/rag/chunk.py`)
 
-- [ ] Implement character-based chunking (CHUNK_SIZE=800, CHUNK_OVERLAP=150)
-- [ ] Track `page_start` / `page_end` per chunk
-- [ ] Generate deterministic `chunk_id` (`<document_id>::chunk::<index>`)
-- [ ] Handle empty text and short documents
+- [x] Implement character-based chunking (CHUNK_SIZE=800, CHUNK_OVERLAP=150)
+- [x] Track `page_start` / `page_end` per chunk
+- [x] Generate deterministic `chunk_id` (`<document_id>::chunk::<index>`)
+- [x] Handle empty text and short documents
 
 ## Embedding (`src/rag/embed.py`)
 
@@ -84,7 +84,7 @@ Reference: [PROJECT.md](PROJECT.md).
 - [x] `test_config.py`: settings defaults, env overrides, path anchoring, validation
 - [x] `test_extract.py`: discovery, page-aware extraction, JSON shape, failure handling
 - [x] `test_clean.py`: line endings, null bytes, whitespace, trimming, paragraph preservation
-- [ ] `test_chunk.py`: size, overlap, page metadata, ordering, empty text
+- [x] `test_chunk.py`: size, overlap, page metadata, ordering, empty text
 - [ ] `test_state.py`: change detection NEW/UNCHANGED/CHANGED/DELETED
 - [ ] `test_index.py`: add/search/remove with explicit IDs, dimension validation
 - [ ] `test_retrieve.py`: query embedding, normalization, top-k mapping to metadata
