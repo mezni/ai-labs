@@ -67,12 +67,12 @@ OpenRouter is the single model gateway. The embedding model and the MiniMax gene
 
 ## Getting Started
 
-Planned bootstrap (see [docs/PROJECT.md](docs/PROJECT.md)):
-
 ```bash
-uv init rag-indexer
-uv add pypdf faiss-cpu numpy openai python-dotenv
-uv run python src/rag/main.py
+uv sync                                # install dependencies into .venv
+uv run python scripts/generate_sample_pdfs.py   # seed data/raw with sample PDFs
+uv run ruff check src scripts          # lint
+export OPENROUTER_API_KEY=...          # or set it in .env
+uv run python src/rag/main.py          # run the pipeline (once implemented)
 ```
 
 ## CI/CD
