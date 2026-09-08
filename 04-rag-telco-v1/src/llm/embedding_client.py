@@ -1,7 +1,6 @@
-"""Embedding client."""
+"""Embedding client for generating text embeddings."""
 
 import os
-from typing import Any
 
 import httpx
 from dotenv import load_dotenv
@@ -12,51 +11,41 @@ load_dotenv()
 
 logger = get_logger(__name__)
 
+DEFAULT_EMBEDDING_URL = "https://api.openai.com/v1/embeddings"
+
 
 class EmbeddingClient:
-    """Generate text embeddings using the configured embedding model."""
+    """Generate text embeddings via an OpenAI-compatible embeddings API.
+
+    Settings (model, dimensions, timeout, url) come from the ``models.embedding``
+    section of config/llm_config.yaml. An API key is only required for live
+    calls; tests can inject an ``httpx`` MockTransport and skip authentication.
+    """
 
     def __init__(
         self,
         model: str | None = None,
+        api_key: str | None = None,
         transport: httpx.BaseTransport | None = None,
-    ) -> None:
-        config = load_config()
-
-        embedding_config = config.get("models", {}).get("embedding", {})
-        api_config = config.get("api", {})
+    ):
+        embedding_config = load_config().get("models", {}).get("embedding", {})
 
         self.model = model or embedding_config.get(
-            "model",
-            "openai/text-embedding-3-small",
+            "model", "text-embedding-3-small"
         )
-
         self.dimensions = embedding_config.get("dimensions", 1536)
+        self.url = embedding_config.get("url", DEFAULT_EMBEDDING_URL)
+        timeout = embedding_config.get("timeout_seconds", 120)
 
-        self.url = embedding_config.get(
-            "openrouter_url",
-            "https://openrouter.ai/api/v1/embeddings",
-        )
+        api_key = api_key or os.getenv("OPENAI_API_KEY")
 
-        timeout = embedding_config.get(
-            "timeout_seconds",
-            api_config.get("timeout", 120),
-        )
+        headers: dict[str, str] = {"Content-Type": "application/json"}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+        else:
+            logger.warning("No OPENAI_API_KEY set; embedding requests will be unauthenticated")
 
-        api_key = os.getenv("OPENROUTER_API_KEY")
-
-        if not api_key:
-            raise RuntimeError("OPENROUTER_API_KEY is not set")
-
-        self._client = httpx.Client(
-            transport=transport,
-            timeout=timeout,
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-        )
-
+        self._client = httpx.Client(transport=transport, timeout=timeout, headers=headers)
         logger.debug(
             "EmbeddingClient ready (model=%s, dimensions=%d)",
             self.model,
@@ -64,56 +53,24 @@ class EmbeddingClient:
         )
 
     def embed(self, text: str) -> list[float]:
-        """Generate an embedding for one piece of text."""
-
-        if not text.strip():
-            raise ValueError("Cannot embed empty text")
-
-        response = self._client.post(
-            self.url,
-            json={
-                "model": self.model,
-                "input": text,
-            },
-        )
-
-        response.raise_for_status()
-
-        data: dict[str, Any] = response.json()
-
-        embedding = data["data"][0]["embedding"]
-
-        return embedding
+        """Return the embedding vector for a single text input."""
+        return self._embed_request(text)[0]
 
     def embed_many(self, texts: list[str]) -> list[list[float]]:
-        """Generate embeddings for multiple texts."""
+        """Return embedding vectors for a batch of texts, in input order."""
+        return self._embed_request(texts)
 
-        if not texts:
-            return []
-
+    def _embed_request(self, payload: str | list[str]) -> list[list[float]]:
+        """Post a single string or a list of strings to the embeddings API."""
+        logger.debug("Embedding %s with %s", type(payload).__name__, self.model)
         response = self._client.post(
             self.url,
-            json={
-                "model": self.model,
-                "input": texts,
-            },
+            json={"model": self.model, "input": payload},
         )
-
         response.raise_for_status()
-
-        data: dict[str, Any] = response.json()
-
-        embeddings = [
-            item["embedding"]
-            for item in sorted(
-                data["data"],
-                key=lambda item: item["index"],
-            )
-        ]
-
-        return embeddings
+        data = response.json()
+        ordered = sorted(data["data"], key=lambda item: item["index"])
+        return [item["embedding"] for item in ordered]
 
     def close(self) -> None:
-        """Close the HTTP client."""
-
         self._client.close()
