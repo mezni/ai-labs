@@ -81,6 +81,8 @@ Reference: [PROJECT.md](PROJECT.md).
 
 ## Tests
 
+- [x] `test_config.py`: settings defaults, env overrides, path anchoring, validation
+- [x] `test_extract.py`: discovery, page-aware extraction, JSON shape, failure handling
 - [ ] `test_clean.py`: line endings, null bytes, whitespace, trimming
 - [ ] `test_chunk.py`: size, overlap, page metadata, ordering, empty text
 - [ ] `test_state.py`: change detection NEW/UNCHANGED/CHANGED/DELETED
