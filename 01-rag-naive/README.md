@@ -49,8 +49,9 @@ OpenRouter is the single model gateway. The embedding model and the MiniMax gene
 | Packaging    | UV                                                   |
 | Vector store | FAISS CPU (`faiss-cpu`), NumPy                       |
 | PDF parsing  | PyPDF                                               |
+| Validation   | Pydantic + `pydantic-settings` (config)              |
 | Model access | OpenRouter (OpenAI-compatible client, `openai`)       |
-| Config       | `python-dotenv`                                       |
+| Config       | `python-dotenv` (via `pydantic-settings`)             |
 
 ## Project Structure
 

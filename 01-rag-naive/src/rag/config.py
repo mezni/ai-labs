@@ -1,28 +1,37 @@
 """Centralized configuration for the RAG pipeline."""
 
-import os
 from pathlib import Path
 
-from dotenv import load_dotenv
-
-load_dotenv()
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
-OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
-OPENROUTER_EMBEDDING_MODEL = os.getenv("OPENROUTER_EMBEDDING_MODEL", "")
-OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "")
 
-CHUNK_SIZE = 800
-CHUNK_OVERLAP = 150
+class Settings(BaseSettings):
+    """Application settings loaded from environment variables and ``.env``."""
 
-TOP_K = 5
+    model_config = SettingsConfigDict(
+        env_file=PROJECT_ROOT / ".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+    )
 
-DATA_DIR = PROJECT_ROOT / "data" / "raw"
-INDEX_PATH = PROJECT_ROOT / "indexes" / "faiss.index"
-METADATA_PATH = PROJECT_ROOT / "indexes" / "metadata.json"
-DOCUMENT_STATE_PATH = PROJECT_ROOT / "indexes" / "document_state.json"
-MANIFEST_PATH = PROJECT_ROOT / "indexes" / "index_manifest.json"
+    openrouter_api_key: str = ""
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    openrouter_embedding_model: str = ""
+    openrouter_model: str = ""
 
-LOG_PATH = PROJECT_ROOT / "logs" / "indexing.log"
+    chunk_size: int = Field(default=800, ge=1)
+    chunk_overlap: int = Field(default=150, ge=0)
+    top_k: int = Field(default=5, ge=1)
+
+    data_dir: Path = PROJECT_ROOT / "data" / "raw"
+    index_path: Path = PROJECT_ROOT / "indexes" / "faiss.index"
+    metadata_path: Path = PROJECT_ROOT / "indexes" / "metadata.json"
+    document_state_path: Path = PROJECT_ROOT / "indexes" / "document_state.json"
+    manifest_path: Path = PROJECT_ROOT / "indexes" / "index_manifest.json"
+    log_path: Path = PROJECT_ROOT / "logs" / "indexing.log"
+
+
+settings = Settings()

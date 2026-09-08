@@ -5,19 +5,19 @@ Reference: [PROJECT.md](PROJECT.md).
 
 ## Scaffolding & Configuration
 
-- [ ] Initialize project with UV (`uv init`) and add `pypdf`, `faiss-cpu`, `numpy`, `openai`, `python-dotenv`
-- [ ] Create `pyproject.toml` with Python 3.12, ruff, and pytest dev dependencies
-- [ ] Add `.env` and `.gitignore` (`.env`, `indexes/`, `logs/`, `data/`)
-- [ ] Create directory skeleton: `data/raw/`, `indexes/`, `logs/`, `src/rag/`, `tests/`
-- [ ] Implement `src/rag/config.py` with paths, chunking, TOP_K, and OpenRouter settings
-- [ ] Add sample PDFs to `data/raw/` for development
+- [x] Initialize project with UV (`uv init`) and add `pypdf`, `faiss-cpu`, `numpy`, `openai`, `python-dotenv`
+- [x] Create `pyproject.toml` with Python 3.12, ruff, and pytest dev dependencies
+- [x] Add `.env` and `.gitignore` (`.env`, `indexes/`, `logs/`, `data/`)
+- [x] Create directory skeleton: `data/raw/`, `indexes/`, `logs/`, `src/rag/`, `tests/`
+- [x] Implement `src/rag/config.py` with paths, chunking, TOP_K, and OpenRouter settings
+- [x] Add sample PDFs to `data/raw/` for development (`scripts/generate_sample_pdfs.py`)
 
 ## Extraction (`src/rag/extract.py`)
 
-- [ ] Implement PDF discovery over `data/raw/` (relative paths)
-- [ ] Implement page-aware text extraction with PyPDF
-- [ ] Return structured `{document_id, pages: [{page_number, text}]}` output
-- [ ] Handle extraction failure: log error, skip document, preserve previous indexed version
+- [x] Implement PDF discovery over `data/raw/` (relative paths)
+- [x] Implement page-aware text extraction with PyPDF
+- [x] Return structured `{document_id, pages: [{page_number, text}]}` output
+- [x] Handle extraction failure: raise `ExtractionError` + log (skip/preserve handled in pipeline)
 
 ## Cleaning (`src/rag/clean.py`)
 
