@@ -1,0 +1,30 @@
+name: Build
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build backend
+        if: matrix.service == 'backend'
+        working-directory: backend
+        run: |
+          pip install -r <(python -c "import tomllib;print('\n'.join(tomllib.load(open('pyproject.toml','rb'))['project']['dependencies']))")
+          python -m compileall -q app
+        shell: bash
+
+      - name: Build frontend
+        if: matrix.service == 'frontend'
+        working-directory: frontend
+        run: |
+          npm install --no-fund --no-audit
+          npm run build

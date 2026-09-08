@@ -1,0 +1,56 @@
+name: Security
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  dependency-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan Python dependencies
+        uses: pypa/gh-action-pip-audit@v1.0.10
+        with:
+          inputs: backend/pyproject.toml
+      - name: Scan Node dependencies
+        working-directory: frontend
+        run: |
+          npm install --no-fund --no-audit
+          npm audit --audit-level=high
+
+  sast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: BoostSecurity scanner
+        uses: boostsecurityio/boostsec-scanner-github@v4
+
+  container-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and scan backend image
+        working-directory: backend
+        run: docker build -t policy-api:scan .
+      - name: Trivy scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: policy-api:scan
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
+      - name: Upload results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan for secrets
+        uses: trufflesecurity/trufflehog@v3.82.5
+        with:
+          path: ./
