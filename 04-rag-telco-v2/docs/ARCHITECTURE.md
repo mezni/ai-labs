@@ -639,6 +639,80 @@ langfuse
 
 ---
 
+## Repository Structure
+
+```text
+04-rag-telco-v2/
+├── docs/
+│   ├── PRD.md
+│   ├── ARCHITECTURE.md
+│   ├── DATA_MODEL.md
+│   ├── INGESTION_SPEC.md
+│   ├── RETRIEVAL_STRATEGY.md
+│   ├── API_SPEC.md
+│   ├── SECURITY.md
+│   ├── OBSERVABILITY.md
+│   ├── FINOPS.md
+│   ├── EVALUATION_PLAN.md
+│   └── RUNBOOK.md
+├── .github/workflows/
+│   ├── build.yml
+│   ├── test.yml
+│   ├── security.yml
+│   ├── evaluation.yml
+│   ├── deploy-test.yml
+│   ├── deploy-prod.yml
+│   └── rollback.yml
+├── frontend/
+│   └── src/
+│       ├── app/
+│       ├── components/
+│       └── lib/
+├── backend/
+│   ├── app/
+│   │   ├── main.py
+│   │   ├── api/
+│   │   ├── core/
+│   │   ├── models/
+│   │   ├── rag/
+│   │   ├── ingestion/
+│   │   ├── services/
+│   │   └── observability/
+│   ├── alembic/
+│   └── tests/
+├── scripts/
+│   ├── ingest_documents.py
+│   ├── reindex.py
+│   └── rebuild_embeddings.py
+├── prompts/
+├── evaluations/
+│   └── datasets/
+├── infra/
+│   ├── prometheus/
+│   ├── grafana/
+│   └── postgres/
+├── .env.example
+├── docker-compose.yml
+└── README.md
+```
+
+### Key Layout Notes
+
+```text
+backend/app/api/        API routes per API_SPEC.md
+backend/app/models/     Database tables per DATA_MODEL.md
+backend/app/rag/        Retrieval pipeline per RETRIEVAL_STRATEGY.md
+backend/app/ingestion/  Ingestion pipeline per INGESTION_SPEC.md
+backend/app/services/   Guardrails, confidence scoring, fallback per SECURITY.md
+scripts/                Operational CLI per RUNBOOK.md
+.github/workflows/      CI/CD per RUNBOOK.md (Appendix A)
+prompts/                Versioned prompt registry per SECURITY.md
+evaluations/            Benchmark datasets per EVALUATION_PLAN.md
+infra/                  Docker services per RUNBOOK.md Service Inventory
+```
+
+---
+
 # 14. Scalability Strategy
 
 ## Horizontal Scaling

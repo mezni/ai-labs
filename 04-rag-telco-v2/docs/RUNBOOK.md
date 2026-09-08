@@ -1513,6 +1513,8 @@ Mean Time To Recovery
 └── rollback.yml
 ```
 
+For the full repository layout, see ARCHITECTURE.md (Repository Structure).
+
 ---
 
 # Definition of Success
