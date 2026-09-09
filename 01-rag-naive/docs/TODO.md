@@ -58,11 +58,11 @@ Reference: [PROJECT.md](PROJECT.md).
 
 ## Retrieval (`src/rag/retrieve.py`)
 
-- [ ] Embed the user question with the same embedding model, normalize it
-- [ ] Perform FAISS search and return top-k vector IDs with scores
-- [ ] Map results to metadata (vector_id → chunk_id → document_id, source, pages, text)
-- [ ] Return structured results including `score` (threshold/rank-ready)
-- [ ] Make TOP_K configurable
+- [x] Embed the user question with the same embedding model, normalize it
+- [x] Perform FAISS search and return top-k vector IDs with scores
+- [x] Map results to metadata (vector_id → chunk_id → document_id, source, pages, text)
+- [x] Return structured results including `score` (threshold/rank-ready)
+- [x] Make TOP_K configurable
 
 ## Generation (`src/rag/generate.py`)
 
@@ -88,7 +88,7 @@ Reference: [PROJECT.md](PROJECT.md).
 - [x] `test_embed.py`: OpenRouter request construction, model configuration, response parsing, dimension validation, retry/failure handling
 - [x] `test_state.py`: change detection NEW/UNCHANGED/CHANGED/DELETED
 - [x] `test_index.py`: add/search/remove with explicit IDs, dimension validation
-- [ ] `test_retrieve.py`: query embedding, normalization, top-k mapping to metadata
+- [x] `test_retrieve.py`: query embedding, normalization, top-k mapping to metadata
 - [ ] `test_generate.py`: prompt construction, context serialization, mock chat call
 - [x] Incremental tests: no-change run → 0 embeddings; one changed doc re-embedded only; deleted doc vectors removed
 - [x] Consistency test: FAISS IDs == metadata IDs; state vector IDs exist in FAISS and metadata
