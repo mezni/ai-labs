@@ -7,7 +7,7 @@ Reference: [PROJECT.md](PROJECT.md).
 
 - [x] Initialize project with UV (`uv init`) and add `pypdf`, `faiss-cpu`, `numpy`, `openai`, `python-dotenv`
 - [x] Create `pyproject.toml` with Python 3.12, ruff, and pytest dev dependencies
-- [x] Add `.env` and `.gitignore` (`.env`, `indexes/`, `logs/`, `data/`)
+- [x] Add `.env` and `.gitignore` (`.env`, `indexes/`, `logs/`, `data/raw/`, `data/processed/`)
 - [x] Create directory skeleton: `data/raw/`, `indexes/`, `logs/`, `src/rag/`, `tests/`
 - [x] Implement `src/rag/config.py` with paths, chunking, TOP_K, and OpenRouter settings
 - [x] Add sample PDFs to `data/raw/` for development (`scripts/generate_sample_pdfs.py`)
@@ -93,8 +93,19 @@ Reference: [PROJECT.md](PROJECT.md).
 - [x] Incremental tests: no-change run → 0 embeddings; one changed doc re-embedded only; deleted doc vectors removed
 - [x] Consistency test: FAISS IDs == metadata IDs; state vector IDs exist in FAISS and metadata
 - [x] `test_main.py`: CLI dispatch (index/reindex/search/ask), per-document failure continues vs critical aborts, unchanged-run idempotency, logging setup
+- [x] `test_readme.py`: README module list / CLI subcommands stay in sync with the package; CI workflow gate exists
+- [x] `test_sample_pdfs.py`: catalog integrity, target resolution, markdown parsing, LLM helper retries/format handling, model-from-`.env` wiring, PDF render→extract roundtrip, `main()` end-to-end with `--keep-md`
+
+## Sample Data Generation (`scripts/generate_sample_pdfs.py`)
+
+- [x] Port `generate_docs.py` from `04-rag-telco-v1`: Aurora Mobile policy catalog (billing/mobile/roaming/customer/compliance), reportlab branding
+- [x] Read LLM configuration from `Settings` / `.env` (`OPENROUTER_MODEL=minimax/minimax-m3`), no hardcoded model
+- [x] Emit branded PDFs into the pipeline's `data/raw/<category>/` layout (indexable by `rag.extract`)
+- [x] Keep CLI flags: `--out-dir`, `--limit`, `--only`, `--keep-md`; non-zero exit + guidance on generation failure
+- [x] Bound every LLM request's output budget (`max_tokens`, default 4096) so a bare call never reserves the model's full 131072-token output
 
 ## CI/CD & Documentation
 
-- [ ] Verify GitHub Actions workflow (`01-rag-naive-ci.yml`) passes (UV sync, ruff, pytest)
-- [ ] Confirm `01-rag-naive` README matches final project state
+- [x] Verify GitHub Actions workflow (`01-rag-naive-ci.yml`) passes (UV sync, ruff, pytest)
+- [x] Confirm `01-rag-naive` README matches final project state
+- [x] Refresh all markdown docs (README, PROJECT, TODO) to match the implemented state: categorized `data/raw/`, gitignored `data/processed/`, full module/test inventory, LLM-driven sample generator
