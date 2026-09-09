@@ -44,17 +44,17 @@ Reference: [PROJECT.md](PROJECT.md).
 
 ## Indexing (`src/rag/index.py` + `src/rag/state.py`)
 
-- [ ] Build `IndexIDMap2(IndexFlatIP(dim))` with explicit vector IDs
-- [ ] Normalize vectors with `faiss.normalize_L2` before insert and search
-- [ ] Implement SHA-256 hashing and change detection (NEW / UNCHANGED / CHANGED / DELETED)
-- [ ] Implement vector ID allocation via manifest `next_vector_id`
-- [ ] Add new document: chunk → embed → validate → add vectors → persist
-- [ ] Change document safely: validate new version first, then remove old vectors, then add new ones
-- [ ] Delete document: read stored vector IDs, `remove_ids`, drop metadata/state
-- [ ] Persist `faiss.index`, `metadata.json`, `document_state.json`, `index_manifest.json` atomically (`.tmp` + replace)
-- [ ] Validate index consistency (FAISS IDs ↔ metadata IDs ↔ document-state IDs) before mutations
-- [ ] Detect embedding-model/dimension change in manifest → trigger full reindex
-- [ ] Ensure idempotency: repeated runs with no changes produce zero embedding requests or vector updates
+- [x] Build `IndexIDMap2(IndexFlatIP(dim))` with explicit vector IDs
+- [x] Normalize vectors with `faiss.normalize_L2` before insert and search
+- [x] Implement SHA-256 hashing and change detection (NEW / UNCHANGED / CHANGED / DELETED)
+- [x] Implement vector ID allocation via manifest `next_vector_id`
+- [x] Add new document: chunk → embed → validate → add vectors → persist
+- [x] Change document safely: validate new version first, then remove old vectors, then add new ones
+- [x] Delete document: read stored vector IDs, `remove_ids`, drop metadata/state
+- [x] Persist `faiss.index`, `metadata.json`, `document_state.json`, `index_manifest.json` atomically (`.tmp` + replace)
+- [x] Validate index consistency (FAISS IDs ↔ metadata IDs ↔ document-state IDs) before mutations
+- [x] Detect embedding-model/dimension change in manifest → trigger full reindex
+- [x] Ensure idempotency: repeated runs with no changes produce zero embedding requests or vector updates
 
 ## Retrieval (`src/rag/retrieve.py`)
 
@@ -86,12 +86,12 @@ Reference: [PROJECT.md](PROJECT.md).
 - [x] `test_clean.py`: line endings, null bytes, whitespace, trimming, paragraph preservation
 - [x] `test_chunk.py`: size, overlap, page metadata, ordering, empty text
 - [x] `test_embed.py`: OpenRouter request construction, model configuration, response parsing, dimension validation, retry/failure handling
-- [ ] `test_state.py`: change detection NEW/UNCHANGED/CHANGED/DELETED
-- [ ] `test_index.py`: add/search/remove with explicit IDs, dimension validation
+- [x] `test_state.py`: change detection NEW/UNCHANGED/CHANGED/DELETED
+- [x] `test_index.py`: add/search/remove with explicit IDs, dimension validation
 - [ ] `test_retrieve.py`: query embedding, normalization, top-k mapping to metadata
 - [ ] `test_generate.py`: prompt construction, context serialization, mock chat call
-- [ ] Incremental tests: no-change run → 0 embeddings; one changed doc re-embedded only; deleted doc vectors removed
-- [ ] Consistency test: FAISS IDs == metadata IDs; state vector IDs exist in FAISS and metadata
+- [x] Incremental tests: no-change run → 0 embeddings; one changed doc re-embedded only; deleted doc vectors removed
+- [x] Consistency test: FAISS IDs == metadata IDs; state vector IDs exist in FAISS and metadata
 
 ## CI/CD & Documentation
 

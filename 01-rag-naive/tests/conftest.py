@@ -2,6 +2,8 @@
 
 import pytest
 
+from rag.config import Settings
+
 
 @pytest.fixture(autouse=True)
 def _isolate_settings_env(monkeypatch):
@@ -22,4 +24,5 @@ def _isolate_settings_env(monkeypatch):
         "LOG_PATH",
     ):
         monkeypatch.delenv(name, raising=False)
+    monkeypatch.setitem(Settings.model_config, "env_file", None)
     yield
