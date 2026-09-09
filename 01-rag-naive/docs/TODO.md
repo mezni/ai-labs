@@ -74,10 +74,10 @@ Reference: [PROJECT.md](PROJECT.md).
 
 ## Pipeline Entrypoint (`src/rag/main.py`)
 
-- [ ] Wire indexing stages: discover → detect → extract → clean → chunk → embed → update
-- [ ] Add CLI flags: `index`, `search`, `ask`, `reindex`
-- [ ] Add logging to `logs/indexing.log` (NEW/UNCHANGED/CHANGED/DELETED, counts, errors)
-- [ ] Keep going after per-document failures; stop + log critical on FAISS/metadata failures
+- [x] Wire indexing stages: discover → detect → extract → clean → chunk → embed → update
+- [x] Add CLI flags: `index`, `search`, `ask`, `reindex`
+- [x] Add logging to `logs/indexing.log` (NEW/UNCHANGED/CHANGED/DELETED, counts, errors)
+- [x] Keep going after per-document failures; stop + log critical on FAISS/metadata failures
 
 ## Tests
 
@@ -92,6 +92,7 @@ Reference: [PROJECT.md](PROJECT.md).
 - [x] `test_generate.py`: prompt construction, context serialization, mock chat call
 - [x] Incremental tests: no-change run → 0 embeddings; one changed doc re-embedded only; deleted doc vectors removed
 - [x] Consistency test: FAISS IDs == metadata IDs; state vector IDs exist in FAISS and metadata
+- [x] `test_main.py`: CLI dispatch (index/reindex/search/ask), per-document failure continues vs critical aborts, unchanged-run idempotency, logging setup
 
 ## CI/CD & Documentation
 
