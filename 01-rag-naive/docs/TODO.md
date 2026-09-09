@@ -66,11 +66,11 @@ Reference: [PROJECT.md](PROJECT.md).
 
 ## Generation (`src/rag/generate.py`)
 
-- [ ] Build system prompt: answer from context only, no invention, state when the answer is absent
-- [ ] Serialize retrieved chunks into SOURCE/PAGE-aware context
-- [ ] Call chat completions against `OPENROUTER_MODEL` (MiniMax)
-- [ ] Return answer with source references
-- [ ] Keep retrieval and generation as separate layers
+- [x] Build system prompt: answer from context only, no invention, state when the answer is absent
+- [x] Serialize retrieved chunks into SOURCE/PAGE-aware context
+- [x] Call chat completions against `OPENROUTER_MODEL` (MiniMax)
+- [x] Return answer with source references
+- [x] Keep retrieval and generation as separate layers
 
 ## Pipeline Entrypoint (`src/rag/main.py`)
 
@@ -89,7 +89,7 @@ Reference: [PROJECT.md](PROJECT.md).
 - [x] `test_state.py`: change detection NEW/UNCHANGED/CHANGED/DELETED
 - [x] `test_index.py`: add/search/remove with explicit IDs, dimension validation
 - [x] `test_retrieve.py`: query embedding, normalization, top-k mapping to metadata
-- [ ] `test_generate.py`: prompt construction, context serialization, mock chat call
+- [x] `test_generate.py`: prompt construction, context serialization, mock chat call
 - [x] Incremental tests: no-change run → 0 embeddings; one changed doc re-embedded only; deleted doc vectors removed
 - [x] Consistency test: FAISS IDs == metadata IDs; state vector IDs exist in FAISS and metadata
 
