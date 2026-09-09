@@ -31,7 +31,6 @@ The system must:
 - Track chunks, vector store version, embedding model, and embedding dimension
 - Support rollback to previous index versions
 - Store embedding metadata so any index can be reliably reproduced
-- Provide retrieval with measurable quality (metrics)
 - Log indexing and retrieval operations
 
 ### RAGOps Maturity Phases
@@ -69,6 +68,10 @@ ChromaDB is the **only** vector store. All vectors and per-chunk metadata live i
 
 - **OpenRouter** — unified OpenAI-compatible gateway for embedding and generation models
 
+### Dashboard
+
+- **Streamlit** — browser UI for catalog/lineage/version visualization and rollback (see Section 19)
+
 ### Ingestion Libraries
 
 - `pypdf` — PDF parsing
@@ -105,34 +108,41 @@ ChromaDB is the **only** vector store. All vectors and per-chunk metadata live i
 ├── scripts/
 │   └── generate_sample_docs.py # regenerate sample source documents into data/raw
 │
+├── app/                        # Streamlit dashboard (visualize catalog, versions, rollback)
+│   ├── artifacts.py            # shared readers for registry + catalog JSON
+│   ├── app.py                  # dashboard entrypoint (`streamlit run app/app.py`)
+│   └── pages/
+│       ├── 1_Documents.py      # document catalog: versions, hashes, metadata, lineage
+│       ├── 2_Index_Versions.py # index versions + configuration + stats
+│       ├── 3_Lineage.py        # chunk → document → version → source → snapshot
+│       ├── 4_Search.py         # top-k retrieval with lineage metadata
+│       └── 5_Rollback.py       # choose a snapshot and roll back current version
+│
 ├── src/
-│   └── dataops/
+│   ├── config.py               # Settings (pydantic-settings)
+│   ├── main.py                 # CLI entrypoint: index, version, rollback, search
+│   │
+│   ├── ingestion/
+│   │   ├── __init__.py
+│   │   ├── loader.py           # source detection + document discovery across connectors
+│   │   ├── parser.py           # format-to-text parsers (PDF, DOCX, HTML, TXT, DB rows)
+│   │   └── hashing.py          # SHA-256 hashing + change detection (NEW/UNCHANGED/CHANGED/DELETED)
+│   │
+│   ├── chunking/
+│   │   └── chunker.py          # LlamaIndex NodeParser wrapper with provenance metadata
+│   │
+│   ├── embeddings/
+│   │   └── embedder.py         # embedding model wrapper (model id, dimension, OpenRouter client)
+│   │
+│   ├── indexing/
+│   │   ├── __init__.py
+│   │   ├── builder.py          # build a new index snapshot into a versioned Chroma collection
+│   │   ├── registry.py         # index registry: catalog versions, config, stats, "current" pointer
+│   │   └── versioning.py       # snapshot lifecycle + rollback to a previous index version
+│   │
+│   └── retrieval/
 │       ├── __init__.py
-│       ├── config.py           # Settings (pydantic-settings)
-│       ├── main.py             # CLI entrypoint: index, version, rollback, search, metrics
-│       │
-│       ├── ingestion/
-│       │   ├── __init__.py
-│       │   ├── loader.py       # source detection + document discovery across connectors
-│       │   ├── parser.py       # format-to-text parsers (PDF, DOCX, HTML, TXT, DB rows)
-│       │   └── hashing.py      # SHA-256 hashing + change detection (NEW/UNCHANGED/CHANGED/DELETED)
-│       │
-│       ├── chunking/
-│       │   └── chunker.py      # LlamaIndex NodeParser wrapper with provenance metadata
-│       │
-│       ├── embeddings/
-│       │   └── embedder.py     # embedding model wrapper (model id, dimension, OpenRouter client)
-│       │
-│       ├── indexing/
-│       │   ├── __init__.py
-│       │   ├── builder.py      # build a new index snapshot into a versioned Chroma collection
-│       │   ├── registry.py     # index registry: catalog versions, config, stats, "current" pointer
-│       │   └── versioning.py   # snapshot lifecycle + rollback to a previous index version
-│       │
-│       └── retrieval/
-│           ├── __init__.py
-│           ├── retriever.py    # embed query + Chroma search via LlamaIndex
-│           └── metrics.py      # RetrievalResult, MRR, Recall@k, precision@k
+│       └── retriever.py        # embed query + Chroma search via LlamaIndex
 │
 └── tests/
     ├── conftest.py
@@ -147,7 +157,6 @@ ChromaDB is the **only** vector store. All vectors and per-chunk metadata live i
     ├── test_registry.py
     ├── test_versioning.py
     ├── test_retriever.py
-    ├── test_metrics.py
     └── test_main.py
 ```
 
@@ -464,25 +473,9 @@ flowchart TB
 
 The query embedding model must match the registered snapshot embedding model.
 
-## 15. Retrieval Metrics
+## 15. Configuration
 
-### Purpose
-
-Measure retrieval quality so index changes are evidence-based.
-
-### Implemented Metrics
-
-- **Recall@k** — how many relevant chunks are retrieved
-- **MRR** — mean reciprocal rank of the first relevant result
-- **Precision@k** — fraction of retrieved chunks that are relevant
-
-### Output
-
-`metrics.py` exposes a `RetrievalResult` model and pure functions that compute the metrics from a ranking versus the set of relevant chunk ids.
-
-## 16. Configuration
-
-Centralized configuration in `src/dataops/config.py` via Pydantic `Settings`:
+Centralized configuration in `src/config.py` via Pydantic `Settings`:
 
 ```
 OPENROUTER_API_KEY
@@ -504,7 +497,7 @@ TOP_K              = 5
 
 Secrets remain in the environment.
 
-## 17. Logging
+## 16. Logging
 
 Basic structured logging to `logs/rag-dataops.log` and the console:
 
@@ -528,7 +521,7 @@ ERROR Snapshot build failed; registry not mutated
 ERROR Rollback failed: version v5 collection missing
 ```
 
-## 18. Error Handling and Safety
+## 17. Error Handling and Safety
 
 - The system continues processing when possible (per-document failures are logged and skipped)
 - A failed snapshot build must **not** mutate the registry or the `current_version` pointer
@@ -536,9 +529,9 @@ ERROR Rollback failed: version v5 collection missing
 - Rollback requires the target snapshot to exist on disk; otherwise it fails loudly
 - Idempotency: repeated index runs with no changes produce no new embeddings and no new snapshots
 
-## 19. CLI
+## 18. CLI
 
-The `rag-dataops` CLI (`src/dataops/main.py`):
+The `rag-dataops` CLI (`src/main.py`):
 
 ```
 rag-dataops index                     # discover, hash, change-detect, build snapshot, bump version
@@ -546,10 +539,49 @@ rag-dataops rollback <version>        # point current_version back to a stored s
 rag-dataops versions                  # list index versions + configuration
 rag-dataops catalog                   # show document catalog (versions, hashes, lineage)
 rag-dataops search "<query>"          # top-k chunks with lineage metadata
-rag-dataops metrics <qrels.json>      # compute retrieval metrics against relevance files
 ```
 
-A Streamlit dashboard is planned on top of this CLI to visualize the catalog, index versions, and rollback (see Section 21).
+A Streamlit dashboard wraps this CLI to visualize the catalog, document lineage, index versions, and rollback (see Section 19).
+
+## 19. Streamlit Dashboard
+
+### Purpose
+
+A browser UI for the DataOps concerns: visualize the document catalog, inspect lineage, browse index versions and their configuration, run searches with lineage metadata, and execute rollback.
+
+### Entrypoint
+
+```
+streamlit run app/app.py
+```
+
+### Pages
+
+| Page | Content |
+|------|---------|
+| Overview (app.py) | current index version, chunk/document counts, per-source distribution |
+| Documents | document catalog: version, hash, last_modified, source, format, chunk_ids |
+| Index Versions | every version in the registry + configuration (embedding model, dimension, provider, chunk size/overlap, counts) |
+| Lineage | drill from a chunk to its document, version, source connector, and index snapshot |
+| Search | ask a question, show top-k chunks with lineage metadata |
+| Rollback | pick any stored snapshot and repoint `current_version` (with confirmation) |
+
+### Data Hooks
+
+The dashboard reads the same artifacts as the CLI:
+
+```
+indexes/document_catalog.json   # Documents + Lineage pages
+indexes/index_registry.json     # Overview + Index Versions + Rollback pages
+```
+
+and calls the same services as the CLI (`src/indexing/versioning.py` for rollback, `src/retrieval/retriever.py` for search). It never performs indexing itself — index builds happen through the CLI.
+
+### Rules
+
+- Rollback from the UI uses the same guardrails as the CLI: the target snapshot must exist on disk and the failed operation must not mutate the registry
+- The dashboard is read-only except for the Rollback page
+- A Streamlit dependency lives in the `dashboard` extra of `pyproject.toml`, not in the core runtime
 
 ## 20. Testing Strategy
 
@@ -560,12 +592,13 @@ A Streamlit dashboard is planned on top of this CLI to visualize the catalog, in
 - **Builder**: snapshot build, version bump, chunk/document counts
 - **Registry**: version catalog read/write, immutability of existing version records
 - **Versioning**: snapshot isolation, rollback restores the correct collection, failed rollout leaves state intact
-- **Metrics**: MRR, Recall@k, Precision@k on known rankings
 - **CLI**: subcommand dispatch
+- **Dashboard**: pages import cleanly and render against sample catalog/registry JSON (smoke test)
 
 ## 21. Roadmap
 
-- **Streamlit dashboard** — visualize document catalog, lineage, index versions, and execute rollback
+- **Streamlit dashboard** — implement the dashboard designed in Section 19
+- **Retrieval metrics** — Recall@k, MRR, Precision@k against manually curated relevance files (`rag-dataops metrics <qrels.json>`)
 - **Phase RAGOps 2 hardening** — richer metadata extraction and lineage UIs
 - **Phase RAGOps 3 hardening** — snapshot retention policy (number of snapshots kept) and async snapshot build
 - **Hybrid search** (semantic + keyword), reranking, evaluation harness, guardrails
@@ -591,7 +624,7 @@ Reproducible indexes — model, dimension, provider, and chunking config are rec
 
 Idempotent indexing — no changes in, no new embeddings or snapshots out.
 
-Observable operations — indexing, versions, rollback, errors, and metrics are logged.
+Observable operations — indexing, versions, rollback, and errors are logged.
 
 Progressive delivery — RAGOps 1 (hashing) → RAGOps 2 (metadata/lineage) →
   RAGOps 3 (versioning) delivered in order.
