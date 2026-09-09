@@ -5,7 +5,28 @@ import pytest
 from src.indexing.builder import Builder
 from src.indexing.registry import IndexRegistry, IndexVersionConfig
 from src.indexing.versioning import RollbackError, Versioning
-from tests.test_builder import make_node
+
+
+def make_node(text, document_id="a.pdf", source="filesystem", format="pdf"):
+    from llama_index.core.schema import TextNode
+    import hashlib
+
+    node = TextNode(
+        text=text,
+        id_=f"{document_id}::v1::chunk::0",
+        metadata={
+            "document_id": document_id,
+            "version": "v1",
+            "source": source,
+            "format": format,
+            "chunk_index": 0,
+            "block_start": 0,
+            "block_end": len(text),
+            "chunk_hash": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+        },
+    )
+    node.embedding = [int(hashlib.sha256(text.encode("utf-8")).hexdigest()[i : i + 2], 16) / 255 for i in range(0, 4 * 2, 2)]
+    return node
 
 
 @pytest.fixture

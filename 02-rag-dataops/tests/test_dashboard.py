@@ -2,12 +2,25 @@ from __future__ import annotations
 
 import importlib
 import json
+import sys
+from pathlib import Path
+from types import SimpleNamespace
 
 import pandas as pd
 
 import app.artifacts as artifacts
 from app.app import registry_frame
-from app.pages import _1_Documents
+
+
+# Dynamically import page modules and check for render function
+# This avoids direct imports that fail in pytest collection for namespace packages
+def import_page_module(name: str):
+    module_path = f"app.pages.{name}"
+    try:
+        return importlib.import_module(module_name)
+    except ImportError as e:
+        pytest.fail(f"Failed to import page module {module_name}: {e}")
+
 
 REGISTRY = {
     "current_version": "v2",
@@ -92,12 +105,22 @@ def test_catalog_frame_projections():
 
 
 def test_page_modules_importable_and_expose_render():
-    for name in (
+    page_names = [
         "1_Documents",
         "2_Index_Versions",
         "3_Lineage",
         "4_Search",
         "5_Rollback",
-    ):
-        module = importlib.import_module(f"app.pages.{name}")
-        assert callable(getattr(module, "render", None))
+    ]
+    original_sys_path = sys.path
+    try:
+        # Temporarily add app/pages to sys.path to help import modules
+        # This is needed because app.pages is a namespace package and module names start with digits.
+        sys.path.insert(0, str(Path("app/pages")))
+        for name in page_names:
+            # Use full module path with the correct filename (without underscore prefix for numbered modules)
+            module_name = f"app.pages.{name}"
+            module = importlib.import_module(module_name)
+            assert callable(getattr(module, "render", None))
+    finally:
+        sys.path = original_sys_path

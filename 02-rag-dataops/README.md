@@ -6,7 +6,7 @@ A DataOps-oriented Retrieval-Augmented Generation (RAG) pipeline: heterogeneous 
 
 ## Status
 
-**Design phase.** The architecture is specified in [docs/PROJECT.md](docs/PROJECT.md); the implementation task list is in [docs/TODO.md](docs/TODO.md). Nothing is implemented yet — this README describes the intended design.
+**Implemented.** The architecture is specified in [docs/PROJECT.md](docs/PROJECT.md); the implementation task list is in [docs/TODO.md](docs/TODO.md). All phases are implemented — see status below.
 
 ## What It Does
 
@@ -26,11 +26,11 @@ A DataOps-oriented Retrieval-Augmented Generation (RAG) pipeline: heterogeneous 
 
 The pipeline is delivered in three verifiable phases (see [docs/TODO.md](docs/TODO.md)):
 
-| Phase | Capability | What you learn |
-|-------|-----------|---------------|
-| RAGOps 1 | Document hashing | Change detection, idempotency |
-| RAGOps 2 | Document metadata | Lineage and provenance |
-| RAGOps 3 | Index versioning | Reproducibility + rollback |
+| Phase | Capability | What you learn | Status |
+|-------|-----------|---------------|--------|
+| RAGOps 1 | Document hashing | Change detection, idempotency | ✅ Implemented |
+| RAGOps 2 | Document metadata | Lineage and provenance | ✅ Implemented |
+| RAGOps 3 | Index versioning | Reproducibility + rollback | ✅ Implemented |
 
 ## Tech Stack
 

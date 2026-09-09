@@ -1,28 +1,11 @@
 from __future__ import annotations
 
-import pytest
-
 import src.main as cli
 from src.indexing.registry import IndexRegistry, IndexVersionConfig
 from src.ingestion.hashing import DocumentCatalog
 from src.ingestion.loader import Loader
-from src.main import (
-    _parse_args,
-    run_catalog,
-    run_index,
-    run_rollback,
-    run_versions,
-)
+from src.main import _parse_args, run_catalog, run_index, run_rollback, run_versions
 from tests.factories import build_pdf, build_txt
-
-
-@pytest.fixture
-def indexed(settings, monkeypatch, fake_embedder):
-    """A settings tree with one PDF indexed into snapshot v1."""
-    build_pdf(settings.data_dir / "a.pdf", "Refund policy text for testing")
-    monkeypatch.setattr(cli, "build_embedder", lambda s: fake_embedder)
-    run_index(settings)
-    return settings
 
 
 def test_cli_dispatch_commands():

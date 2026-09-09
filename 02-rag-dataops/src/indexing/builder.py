@@ -146,8 +146,8 @@ class Builder:
         document_ids = sorted({node.metadata.get("document_id", "") for node in nodes})
         stats: dict[str, int] = {}
         for node in nodes:
-            source = node.metadata.get("source", "unknown")
-            stats[source] = stats.get(source, 0) + 1
+            fmt = node.metadata.get("format", "unknown")
+            stats[fmt] = stats.get(fmt, 0) + 1
         dimension = embedder.dimension
         if dimension is None:
             # infer from embedded content (e.g. carried/re-embedded nodes) when
