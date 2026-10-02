@@ -1,0 +1,3 @@
+project_blueprint:
+  version: "v1"
+  path: "prompts/project_blueprint"

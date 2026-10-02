@@ -1,0 +1,25 @@
+[project]
+name = "ai-project-bluegen"
+version = "0.1.0"
+description = "An agentic AI system that generates architecture blueprints from project ideas."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "langchain>=1.4.2",
+    "langchain-openai>=1.6.2",
+    "langchain-openrouter>=0.2.8",
+    "openai>=3.16.2",
+    "pydantic>=2.12.5",
+    "pydantic-settings>=2.15.0",
+    "python-dotenv>=1.2.3",
+    "pyyaml>=6.0.3",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

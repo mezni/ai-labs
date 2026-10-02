@@ -1,0 +1,5 @@
+Project idea:
+
+{project_idea}
+
+Analyze this project idea and generate the requested information.
