@@ -1,0 +1,9 @@
+
+{"ticket":"Where is order #4821?","expected":{"category":"order_status","order_id":"4821","needs_order_lookup":true}}
+{"ticket":"My package never arrived.","expected":{"category":"order_status","order_id":null,"needs_order_lookup":false}}
+{"ticket":"I want my money back.","expected":{"category":"refund","order_id":null,"needs_order_lookup":false}}
+{"ticket":"How do I change my email?","expected":{"category":"general","order_id":null,"needs_order_lookup":false}}
+{"ticket":"Please refund order #7312.","expected":{"category":"refund","order_id":"7312","needs_order_lookup":false}}
+{"ticket":"Can you track order 9951?","expected":{"category":"order_status","order_id":"9951","needs_order_lookup":true}}
+{"ticket":"The item arrived damaged and I need a refund.","expected":{"category":"refund","order_id":null,"needs_order_lookup":false}}
+{"ticket":"Thank you for your help.","expected":{"category":"general","order_id":null,"needs_order_lookup":false}}
