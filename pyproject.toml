@@ -4,11 +4,15 @@ version = "0.1.0"
 description = "Production-style RAG over telecom policy documents, built step by step."
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "pydantic>=2.14.1",
+    "pypdf>=6.20.1",
+]
 
 [dependency-groups]
 dev = [
     "pytest>=8.0",
+    "reportlab>=5.0.1",
     "ruff>=0.6",
 ]
 
