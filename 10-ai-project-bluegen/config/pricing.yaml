@@ -1,7 +1,0 @@
-models:
-  nvidia/nemotron-3-ultra-550b-a55b:free:
-    input_cost_per_million_tokens: 0.0
-    output_cost_per_million_tokens: 0.0
-  openai/gpt-4o-mini:
-    input_cost_per_million_tokens: 0.0
-    output_cost_per_million_tokens: 0.0
