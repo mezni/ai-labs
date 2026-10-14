@@ -24,3 +24,42 @@
   step, and you can grow the set. Markdown first (diffable in git). PDFs come in step 2 to
   exercise a second parser.
 - **Example:** `make test` → 5 passed.
+
+## Step 2: Parse and clean
+
+- **Goal:** Turn raw files (Markdown, text, PDF) into clean, structured blocks that keep their
+  lineage (heading level, page).
+- **Problem:** Raw parsing leaves page numbers, repeated headers and footers, odd whitespace and
+  ligatures. Without structure, chunking (step 3) can't cut on clause boundaries or cite a source.
+- **Solution (files):** `src/core/models.py` (`Block`), `src/parsing/` (`_blocks.py`,
+  `markdown.py`, `text.py`, `pdf.py`, `registry.py`), `src/cleaning.py`, `tests/test_parsing.py`,
+  `tests/test_cleaning.py`, `tests/test_pdf.py`.
+- **Trade-off:** Parsers take bytes, not a path, so they stay independent of where files come
+  from (filesystem, API, database later). A new block starts at a heading, a clause number
+  (`2.1 `) or after a line ending in `.`, so clauses stay separate but a wrapped line that ends
+  in a period will be split early. Cleaning drops any text found on 2 or more pages (headers,
+  footers), which would also drop a genuine sentence repeated on two pages. pypdf is light and
+  has no OCR, so scanned PDFs are out of scope. Heavier parsers like docling can replace it later
+  behind the same registry.
+- **Example:** `AW-ROA-002_roaming_policy_v2.md` → `heading(level=1)` "AW-ROA-002 Roaming Policy
+  (v2)", `heading(level=2)` "2. Zones", `paragraph` "2.1 Zone A covers …".
+
+## Step 3: Chunking with lineage
+
+- **Goal:** Turn parsed blocks into retrievable `Chunk` objects that know where they came from
+  (document, version, heading path, clause, page).
+- **Problem:** Fixed-size splits cut through clauses and lose their source. A chunk like "billed
+  at $8 per GB" is useless if it doesn't say which policy, which version and which section it
+  belongs to.
+- **Solution (files):** `src/core/models.py` (add `Chunk`), `src/chunking.py`, `src/corpus.py`
+  (manifest loader plus parse → clean → chunk glue), `tests/test_chunking.py`,
+  `tests/test_chunking_corpus.py`.
+- **Trade-off:** Chunks follow clause boundaries instead of a fixed window. Clauses already stand
+  alone, so there is no overlap, which keeps the index smaller. Clauses under `min_tokens` merge
+  with the next one, so tiny fragments don't become their own vectors. A clause over `max_tokens`
+  is split on sentences, then on words, and every piece keeps the same heading path and clause.
+  Token counts use a `chars / 4` estimate, so there is no tokenizer dependency yet. The embedding
+  provider is configurable, so exact counts are better added in step 4.
+- **Example:** Roaming v2, clause 2.2 → `Chunk(chunk_id="AW-ROA-002-v2-0002",
+  heading_path=("AW-ROA-002 Roaming Policy (v2)", "2. Zones"), clause="2.2", text="2.2 Zone B
+  covers … $8 per GB.")`.
