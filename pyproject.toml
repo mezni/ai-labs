@@ -5,8 +5,14 @@ description = "Production-style RAG over telecom policy documents, built step by
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "alembic>=1.20.0",
+    "openai>=3.31.0",
+    "pgvector>=0.5.1",
+    "psycopg[binary]>=3.3.6",
     "pydantic>=2.14.1",
+    "pydantic-settings>=2.16.0",
     "pypdf>=6.20.1",
+    "sqlalchemy>=2.1.4",
 ]
 
 [dependency-groups]
@@ -22,6 +28,7 @@ package = false
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+markers = ["integration: needs a running Postgres with pgvector (make db-up)"]
 
 [tool.ruff]
 line-length = 100

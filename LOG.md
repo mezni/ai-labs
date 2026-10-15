@@ -63,3 +63,24 @@
 - **Example:** Roaming v2, clause 2.2 → `Chunk(chunk_id="AW-ROA-002-v2-0002",
   heading_path=("AW-ROA-002 Roaming Policy (v2)", "2. Zones"), clause="2.2", text="2.2 Zone B
   covers … $8 per GB.")`.
+
+## Step 4: Embeddings and vector store
+
+- **Goal:** Make chunks searchable by meaning: a configurable embedding provider, a Postgres +
+  pgvector store, and the first Alembic migration.
+- **Problem:** No semantic search yet, and ad hoc vector storage is brittle. Switching providers
+  later would touch every caller, and tests would need an API key.
+- **Solution (files):** `src/config.py`, `src/embeddings/` (`base.py`, `hashing.py`,
+  `openai_provider.py`, `registry.py`), `src/db/` (`models.py`, `repository.py`),
+  `src/indexing.py`, `alembic.ini`, `migrations/`, `docker-compose.yml`, `docker/initdb/`,
+  updated `Makefile`, `.env.example`, `ci.yml`, `tests`.
+- **Trade-off:** The provider sits behind a small protocol chosen by `EMBEDDING_PROVIDER`. The
+  hashing provider runs offline, so tests and CI need no API key, but its similarity is lexical,
+  not semantic. Real quality numbers come with OpenAI in step 10. The dimension is fixed at 1536
+  in the migration, so a model with other dimensions needs a new migration. Two schemas split the
+  data: `app` holds chunk text and lineage, `vectors` holds embeddings. No `documents` or
+  `pipeline_runs` tables yet (step 11). HNSW is approximate but fast and needs no training, while
+  an exact scan would be fine at this size. The whole run is one transaction, to be replaced by
+  one per document in step 11. Every run re-embeds everything, which costs API calls until step 11
+  adds file hashing.
+- **Example:** `make index` → indexed 5 documents, N chunks, N embeddings (hashing-v1, 1536 dims).

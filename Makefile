@@ -1,4 +1,6 @@
-.PHONY: install lint format test check
+export PYTHONPATH := src
+
+.PHONY: install lint format test check db-up db-down migrate index
 
 install:
 	uv sync
@@ -14,3 +16,15 @@ test:
 
 check: lint test
 	uv run ruff format --check .
+
+db-up:
+	docker compose up -d --wait db
+
+db-down:
+	docker compose down
+
+migrate:
+	uv run alembic upgrade head
+
+index:
+	uv run python -m indexing

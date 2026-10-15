@@ -5,9 +5,12 @@ Built for learning and as a portfolio project.
 
 ## Quickstart
 
-    uv sync
-    uv run pytest
-    uv run ruff check .
+    cp .env.example .env
+    make install
+    make db-up      # Postgres + pgvector in Docker
+    make migrate    # create schemas and tables
+    make index      # chunk, embed and store the corpus
+    make check      # ruff + pytest
 
 ## Status
 
