@@ -6,6 +6,7 @@ dependencies = [
     "jupyterlab>=4.6.4",
     "langchain>=1.4.7",
     "langchain-openai>=1.7.2",
+    "pydantic>=2.14.1",
     "pytest>=9.1.1",
     "python-dotenv>=1.2.4",
     "ruff>=0.17.2",
