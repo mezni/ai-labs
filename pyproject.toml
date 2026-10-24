@@ -3,6 +3,7 @@ name = "ai-labs"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
+    "anthropic>=2.3.0",
     "jupyterlab>=4.6.4",
     "langchain>=1.4.7",
     "langchain-mcp-adapters>=0.3.2",
