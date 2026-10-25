@@ -1,3 +1,4 @@
+mod ai;
 mod models;
 mod policy;
 mod processor;
@@ -25,9 +26,14 @@ struct Args {
     /// Dry run - validate only, do not process
     #[arg(long)]
     dry_run: bool,
+    /// AI review using OpenAI gpt-6-luna
+    #[arg(long)]
+    ai_review: bool,
 }
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
+    dotenvy::dotenv().ok();
     let args = Args::parse();
 
     let refund = Refund {
@@ -37,6 +43,24 @@ fn main() -> Result<()> {
     };
 
     policy::validate(&refund)?;
+
+    if args.ai_review {
+        let review = ai::review_refund(&refund.order_id, refund.amount, &refund.reason).await?;
+        if args.json {
+            let out = serde_json::json!({
+                "ai_review": true,
+                "model": "gpt-6-luna",
+                "order_id": refund.order_id,
+                "amount": refund.amount,
+                "reason": refund.reason,
+                "review": review
+            });
+            println!("{}", serde_json::to_string_pretty(&out)?);
+        } else {
+            println!("[ai-review:gpt-6-luna] {}", review);
+        }
+        return Ok(());
+    }
 
     if args.dry_run {
         if args.json {
