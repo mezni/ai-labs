@@ -22,6 +22,9 @@ struct Args {
     /// Output as JSON
     #[arg(long)]
     json: bool,
+    /// Dry run - validate only, do not process
+    #[arg(long)]
+    dry_run: bool,
 }
 
 fn main() -> Result<()> {
@@ -34,6 +37,27 @@ fn main() -> Result<()> {
     };
 
     policy::validate(&refund)?;
+
+    if args.dry_run {
+        if args.json {
+            let dry = serde_json::json!({
+                "dry_run": true,
+                "status": "valid",
+                "order_id": refund.order_id,
+                "amount": refund.amount,
+                "reason": refund.reason,
+                "message": "Validation passed"
+            });
+            println!("{}", serde_json::to_string_pretty(&dry)?);
+        } else {
+            println!(
+                "[dry-run] valid - order_id={} amount={:.2} reason={}",
+                refund.order_id, refund.amount, refund.reason
+            );
+        }
+        return Ok(());
+    }
+
     let result = processor::process_refund(&refund);
 
     if args.json {
