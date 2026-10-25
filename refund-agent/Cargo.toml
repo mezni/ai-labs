@@ -1,0 +1,9 @@
+
+[package]
+name = "refund-agent"
+version = "0.1.0"
+edition = "2024"
+description = "A learning project for building a production-ready AI Refund Agent in Rust"
+license = "MIT"
+
+[dependencies]
