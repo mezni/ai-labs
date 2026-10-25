@@ -1,5 +1,10 @@
-use anyhow::{Result, bail};
+mod models;
+mod policy;
+mod processor;
+
+use anyhow::Result;
 use clap::Parser;
+use models::Refund;
 
 #[derive(Parser, Debug)]
 #[command(name = "refund-agent-simple")]
@@ -19,21 +24,17 @@ struct Args {
 fn main() -> Result<()> {
     let args = Args::parse();
 
-    if args.order_id.trim().is_empty() {
-        bail!("order_id cannot be empty");
-    }
-    if args.amount <= 0.0 {
-        bail!("amount must be greater than 0");
-    }
-    if args.reason.trim().is_empty() {
-        bail!("reason cannot be empty");
-    }
+    let refund = Refund {
+        order_id: args.order_id.trim().to_string(),
+        amount: args.amount,
+        reason: args.reason.trim().to_string(),
+    };
 
+    policy::validate(&refund)?;
+    let result = processor::process_refund(&refund);
     println!(
-        "Processing refund: order_id={}, amount={:.2}, reason={}",
-        args.order_id.trim(),
-        args.amount,
-        args.reason.trim()
+        "[{}] order_id={} amount={:.2} reason={} - {}",
+        result.status, result.order_id, result.amount, result.reason, result.message
     );
     Ok(())
 }
