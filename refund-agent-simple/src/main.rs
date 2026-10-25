@@ -19,6 +19,9 @@ struct Args {
     /// Reason for refund
     #[arg(long)]
     reason: String,
+    /// Output as JSON
+    #[arg(long)]
+    json: bool,
 }
 
 fn main() -> Result<()> {
@@ -32,9 +35,14 @@ fn main() -> Result<()> {
 
     policy::validate(&refund)?;
     let result = processor::process_refund(&refund);
-    println!(
-        "[{}] order_id={} amount={:.2} reason={} - {}",
-        result.status, result.order_id, result.amount, result.reason, result.message
-    );
+
+    if args.json {
+        println!("{}", serde_json::to_string_pretty(&result)?);
+    } else {
+        println!(
+            "[{}] order_id={} amount={:.2} reason={} - {}",
+            result.status, result.order_id, result.amount, result.reason, result.message
+        );
+    }
     Ok(())
 }
