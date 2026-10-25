@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Result, bail};
 use clap::Parser;
 
 #[derive(Parser, Debug)]
@@ -18,9 +18,22 @@ struct Args {
 
 fn main() -> Result<()> {
     let args = Args::parse();
+
+    if args.order_id.trim().is_empty() {
+        bail!("order_id cannot be empty");
+    }
+    if args.amount <= 0.0 {
+        bail!("amount must be greater than 0");
+    }
+    if args.reason.trim().is_empty() {
+        bail!("reason cannot be empty");
+    }
+
     println!(
         "Processing refund: order_id={}, amount={:.2}, reason={}",
-        args.order_id, args.amount, args.reason
+        args.order_id.trim(),
+        args.amount,
+        args.reason.trim()
     );
     Ok(())
 }
