@@ -6,6 +6,12 @@ resolution-markers = [
     "python_full_version < '3.14'",
 ]
 
+[manifest]
+members = [
+    "ai-labs",
+    "ccaf",
+]
+
 [[package]]
 name = "ai-labs"
 version = "0.1.0"
@@ -221,6 +227,21 @@ wheels = [
 [package.optional-dependencies]
 css = [
     { name = "tinycss2" },
+]
+
+[[package]]
+name = "ccaf"
+version = "0.1.0"
+source = { editable = "ccaf" }
+dependencies = [
+    { name = "pytest" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pytest", specifier = ">=9.1.1" },
+    { name = "ruff", specifier = ">=0.17.2" },
 ]
 
 [[package]]
