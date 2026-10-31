@@ -234,13 +234,17 @@ name = "ccaf"
 version = "0.1.0"
 source = { editable = "ccaf" }
 dependencies = [
+    { name = "anthropic" },
     { name = "pytest" },
+    { name = "python-dotenv" },
     { name = "ruff" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "anthropic", specifier = ">=2.3.0" },
     { name = "pytest", specifier = ">=9.1.1" },
+    { name = "python-dotenv", specifier = ">=1.2.4" },
     { name = "ruff", specifier = ">=0.17.2" },
 ]
 
