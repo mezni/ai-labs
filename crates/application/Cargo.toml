@@ -6,4 +6,5 @@ license.workspace = true
 
 [dependencies]
 bio-com-domain = { path = "../domain" }
+async-trait = "0.1"
 thiserror.workspace = true
