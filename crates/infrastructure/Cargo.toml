@@ -1,0 +1,9 @@
+[package]
+name = "bio-com-infrastructure"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+bio-com-domain = { path = "../domain" }
+bio-com-application = { path = "../application" }
