@@ -11,3 +11,21 @@ serde = { version = "1", features = ["derive"] }
 config = "0.15"
 dotenvy = "0.15"
 thiserror = "2"
+
+sqlx = {
+    version = "0.8",
+    default-features = false,
+    features = [
+        "runtime-tokio-rustls",
+        "postgres",
+        "uuid",
+        "chrono",
+        "migrate",
+        "macros",
+        "bigdecimal"
+    ]
+}
+
+bigdecimal = "0.4"
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }

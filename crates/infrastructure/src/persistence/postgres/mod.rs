@@ -1,4 +1,3 @@
-use sqlx::postgres::PgPool;
 use sqlx::Pool;
 
 pub type PgPool = Pool<sqlx::Postgres>;
