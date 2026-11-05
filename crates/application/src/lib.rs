@@ -1,5 +1,4 @@
-pub mod error;
-pub mod service;
-
-pub use error::Error;
-pub use service::Service;
+pub mod errors;
+pub mod modules;
+pub mod ports;
+pub mod services;
