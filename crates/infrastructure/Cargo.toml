@@ -6,3 +6,8 @@ edition = "2024"
 [dependencies]
 bio-com-domain = { path = "../domain" }
 bio-com-application = { path = "../application" }
+
+serde = { version = "1", features = ["derive"] }
+config = "0.15"
+dotenvy = "0.15"
+thiserror = "2"
