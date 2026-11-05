@@ -56,7 +56,6 @@ Domain errors represent violations of business rules.
 They belong to the domain layer.
 
 Examples:
-
 - Invalid order status.
 - Product cannot be published.
 - Insufficient inventory.
@@ -88,7 +87,6 @@ The domain should describe what is wrong in business terms.
 Application errors represent failures while executing a use case.
 
 Examples:
-
 - Order not found.
 - Customer not found.
 - Payment operation failed.
@@ -123,7 +121,6 @@ Avoid putting HTTP-specific behavior in application errors.
 Infrastructure errors represent technical failures.
 
 Examples:
-
 - PostgreSQL connection failure.
 - SQL constraint violation.
 - External API timeout.
@@ -187,7 +184,7 @@ Use consistent HTTP status codes.
 | 403 | Forbidden | Insufficient permissions |
 | 404 | Not Found | Order does not exist |
 | 409 | Conflict | Invalid state transition |
-| 422 | Unprocessable Content | Business validation failure |
+| 422 | Unprocessable Content | Business rule violation |
 | 429 | Too Many Requests | Rate limit exceeded |
 | 500 | Internal Server Error | Unexpected application failure |
 | 502 | Bad Gateway | Invalid upstream response |
@@ -279,6 +276,7 @@ Example API response:
     "details": [
       {
         "field": "quantity",
+        "code": "MUST_BE_POSITIVE",
         "message": "Quantity must be greater than zero."
       }
     ]
@@ -291,8 +289,6 @@ Do not rely on API validation alone. Important business rules must remain protec
 ## 11. Error Codes
 
 Use stable machine-readable error codes.
-
-Examples:
 
 | Error code | Meaning |
 |---|---|
@@ -435,7 +431,6 @@ Log it once at the appropriate boundary, preserving useful context.
 Error responses can expose sensitive implementation details if they are not handled correctly.
 
 Follow these rules:
-
 - Never expose SQL statements.
 - Never expose database credentials.
 - Never expose authentication tokens.
@@ -451,7 +446,7 @@ The application should provide enough information to investigate a problem witho
 
 ```text
 src/
-├── shared/
+├ shared/
 │   ├── domain/
 │   │   └── errors/
 │   │       └── mod.rs
@@ -464,12 +459,12 @@ src/
 │       └── errors/
 │           └── mod.rs
 │
-├── api/
+├ api/
 │   └── errors/
 │       ├── mod.rs
 │       └── response.rs
 │
-└── modules/
+└ modules/
     ├── ordering/
     ├── catalog/
     ├── customer/
@@ -516,7 +511,6 @@ Verify:
 ## 19. What We Will Not Implement Now
 
 To keep the design simple:
-
 - No complex global exception framework.
 - No arbitrary string-based errors.
 - No HTTP dependencies in the domain layer.
@@ -529,7 +523,6 @@ We will use Rust's typed error system and explicit mapping.
 ## 20. Future Improvements
 
 As the application grows, we can introduce:
-
 - Centralized error tracking.
 - Standardized problem-details responses.
 - More detailed validation metadata.
@@ -555,3 +548,7 @@ For `bio-com`, error handling follows these principles:
 - No sensitive information in API responses.
 
 The objective is to make failures predictable, understandable, and safe across the entire application.
+
+---
+
+*This document merges and consolidates content from the original `error-handling.md` and `error-handling-and-resilience.md` documentation sources, removing overlapping sections and preserving the core principles from both documents.*

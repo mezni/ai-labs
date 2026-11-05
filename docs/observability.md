@@ -5,7 +5,6 @@
 Observability helps us understand the internal behavior of bio-com by looking at its outputs.
 
 It helps answer questions such as:
-
 - Is the application running correctly?
 - Which API endpoints are slow?
 - Why did an order creation fail?
@@ -43,8 +42,6 @@ Logs describe events that happen inside the application.
 
 Example:
 
-An order was successfully created.
-
 ```json
 {
   "level": "INFO",
@@ -63,7 +60,6 @@ Logs help investigate individual events and failures.
 Metrics are numerical measurements collected over time.
 
 Examples:
-
 - Number of HTTP requests.
 - Request latency.
 - Error rate.
@@ -78,7 +74,6 @@ Metrics help identify trends and performance problems.
 Tracing follows an operation through different application components.
 
 For example, creating an order may involve:
-
 1. API handler.
 2. Order application service.
 3. Inventory module.
@@ -151,17 +146,17 @@ Use structured logs instead of relying only on plain text messages.
 
 ### Log Levels
 
-| Level | Usage |
-|---|---|
-| TRACE | Very detailed execution information |
-| DEBUG | Development and debugging information |
-| INFO | Important normal application events |
-| WARN | Unexpected but recoverable situations |
-| ERROR | Failed operations |
+| Level | Usage | Example |
+|---|---|---|
+| TRACE | Very detailed execution information | Development diagnostics |
+| DEBUG | Development and debugging information | Repository operation |
+| INFO | Important normal application events | Order placed |
+| WARN | Unexpected but recoverable situations | Retry scheduled |
+| ERROR | Failed operations | Database transaction failed |
 
-Avoid logging every function call at INFO level.
+Avoid logging every operation at INFO level.
 
-Logs should provide useful operational information without generating unnecessary volume.
+Production logging should normally use INFO as the default, with DEBUG and TRACE enabled only when troubleshooting requires them.
 
 ### Rust Example
 
@@ -197,7 +192,6 @@ X-Correlation-ID: req-123
 ```
 
 The correlation ID helps connect:
-
 - API logs.
 - Application logs.
 - Database operation logs.
@@ -237,7 +231,6 @@ flowchart TD
 ```
 
 Each span should provide:
-
 - Operation name.
 - Start and end time.
 - Relevant identifiers.
@@ -264,7 +257,6 @@ The initial implementation should focus on useful metrics.
 | http_requests_in_flight | Currently processing requests |
 
 Collect metrics by:
-
 - HTTP method.
 - Route template.
 - Status code.
@@ -287,8 +279,6 @@ Monitor connection pool saturation and slow queries.
 
 Business metrics help understand platform activity.
 
-Examples:
-
 | Metric | Description |
 |---|---|
 | orders_created_total | Number of created orders |
@@ -305,7 +295,6 @@ Business metrics must not contain personal customer information.
 Use consistent names.
 
 Recommended conventions:
-
 - Lowercase.
 - Underscore separators.
 - Descriptive units.
@@ -317,7 +306,6 @@ Recommended conventions:
 Monitor application performance continuously.
 
 Important measurements include:
-
 - API response time.
 - Database query time.
 - Connection acquisition time.
@@ -326,7 +314,6 @@ Important measurements include:
 - CPU and memory usage.
 
 For HTTP endpoints, examine latency percentiles:
-
 - p50: typical response time.
 - p95: response time below which 95% of requests complete.
 - p99: response time below which 99% of requests complete.
@@ -351,7 +338,6 @@ Example:
 ```
 
 Errors should be classified into:
-
 - Business errors.
 - Validation errors.
 - Authentication errors.
@@ -413,7 +399,6 @@ Avoid generating alerts for every isolated error.
 Observability must follow the security policies defined in `security-and-audit.md`.
 
 Never include:
-
 - Passwords.
 - Session tokens.
 - Authorization headers.
@@ -485,7 +470,6 @@ Do not expose operational metrics publicly without an explicit security decision
 The first version does not require a full monitoring platform.
 
 Start with:
-
 1. Structured JSON logs.
 2. Request correlation IDs.
 3. HTTP request metrics.
@@ -520,7 +504,7 @@ OpenTelemetry can be added when there is a concrete need for trace export and ce
 
 - Important operations create spans.
 - Correlation IDs are propagated.
-- Errors are associated with the relevant spans.
+- Errors preserve useful context.
 
 ### Health Check Tests
 
@@ -544,4 +528,4 @@ OpenTelemetry can be added when there is a concrete need for trace export and ce
 
 ---
 
-**Main principle:** Logs explain what happened, metrics show how the system behaves, and traces help us understand where and why an operation took time or failed.
+*This document merges and consolidates content from the original `observability.md` and `observability-and-logging.md` documentation sources, removing overlapping sections and preserving the core principles from both documents.*
