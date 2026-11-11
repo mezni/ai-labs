@@ -1,0 +1,10 @@
+# Ignore Python virtual environments, caches, and builds anywhere in subdirectories
+**/__pycache__/
+*.py[cod]
+**/.venv/
+**/venv/
+**/.pytest_cache/
+**/.ruff_cache/
+**/dist/
+**/build/
+**/*.egg-info/
